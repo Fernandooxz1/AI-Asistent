@@ -18,7 +18,7 @@ from main import KiroAssistant
 
 # ─── Configuración Global ─────────────────────────────────────────────────────
 SINGLETON_PORT = 65432
-logger = logging.getLogger("KiroGUI")
+logger = logging.getLogger("ViernesGUI")
 
 # ─── Paleta de colores ────────────────────────────────────────────────────────
 _BG        = "#0f0f0f"
@@ -49,9 +49,9 @@ def check_singleton():
         pass
 
 
-class KiroGUI(ctk.CTk):
+class ViernesGUI(ctk.CTk):
     """
-    Interfaz gráfica de Kiro basada en CustomTkinter con soporte para Singleton.
+    Interfaz gráfica de Viernes basada en CustomTkinter con soporte para Singleton.
     """
 
     def __init__(self) -> None:
@@ -271,7 +271,7 @@ class KiroGUI(ctk.CTk):
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Salir por completo", self._quit_app),
         )
-        return pystray.Icon(name="kiro", icon=self._make_tray_image(), title="Kiro Assistant", menu=menu)
+        return pystray.Icon(name="viernes", icon=self._make_tray_image(), title="Viernes Assistant", menu=menu)
 
     def _hide_to_tray(self) -> None:
         logger.info("Ocultando ventana al system tray...")
@@ -284,7 +284,7 @@ class KiroGUI(ctk.CTk):
         self.after(0, self.show_window)
 
     def _quit_app(self, icon: pystray.Icon, item) -> None:
-        logger.info("Saliendo por completo de Kiro...")
+        logger.info("Saliendo por completo de Viernes...")
         self._stop_event.set()
         icon.stop()
         self.after(0, self.quit)
@@ -294,5 +294,5 @@ class KiroGUI(ctk.CTk):
 # ─── Entry point ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     check_singleton()  # 1. Verificar si ya existe una instancia
-    app = KiroGUI()    # 2. Si no existe, arrancar normal
+    app = ViernesGUI()    # 2. Si no existe, arrancar normal
     app.mainloop()

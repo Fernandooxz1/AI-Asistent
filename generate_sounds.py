@@ -89,7 +89,7 @@ if __name__ == "__main__":
     import os
     
     print("=" * 60)
-    print("Generando archivos de sonido para Kiro")
+    print("Generando archivos de sonido para Viernes")
     print("=" * 60)
     print()
     

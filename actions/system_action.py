@@ -36,7 +36,7 @@ class SystemActionModule(ActionModule):
 
     4. EJECUCIÓN NO BLOQUEANTE (Popen): Se usa Popen en lugar de run() o
         call() para que el proceso se lance en segundo plano sin bloquear el
-        hilo principal de Kiro.
+        hilo principal de Viernes.
     """
 
     DANGEROUS_TERMS: Set[str] = {
@@ -154,7 +154,7 @@ class SystemActionModule(ActionModule):
                 logger.info(f"Lanzando aplicación gráfica en segundo plano: {args}")
 
             # Lanzamos el proceso silenciando TODAS las salidas para que ninguna app 
-            # (tenga interfaz o no) ensucie la consola padre de Kiro.
+            # (tenga interfaz o no) ensucie la consola padre de Viernes.
             subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return True
 

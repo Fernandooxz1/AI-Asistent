@@ -6,7 +6,7 @@ import logging
 import urllib.request
 import time
 
-logger = logging.getLogger("Kiro")
+logger = logging.getLogger("Viernes")
 
 class GameLauncherModule:
     """Módulo encargado de lanzar videojuegos dinámicamente.
@@ -37,10 +37,10 @@ class GameLauncherModule:
         except Exception as e:
             logger.error(f"Aviso: No se pudo vaciar la VRAM de Ollama: {e}")
 
-        logger.info("Cerrando Kiro para darte máximo rendimiento. ¡Buen juego!")
+        logger.info("Cerrando Viernes para darte máximo rendimiento. ¡Buen juego!")
         time.sleep(1) # Le damos un segundito a la terminal para imprimir los logs
         
-        # Matamos a Kiro de raíz (salta cualquier bloqueo de micrófono de PipeWire)
+        # Matamos a Viernes de raíz (salta cualquier bloqueo de micrófono de PipeWire)
         os._exit(0)
 
     def execute(self, entities: dict) -> bool:

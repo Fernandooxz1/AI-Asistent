@@ -62,7 +62,7 @@
     ],
     "adios": [
       {"type": "comando", "args": ["pkill", "-f", "ollama"]},
-      {"type": "comando", "args": ["pkill", "-f", "kirito"]}
+      {"type": "comando", "args": ["pkill", "-f", "viernes"]}
     ]
   },
   "games": {

@@ -2,13 +2,13 @@
 # Script para construir la aplicación Kiro con PyInstaller
 
 echo "=========================================="
-echo "Construyendo Kiro con PyInstaller"
+echo "Construyendo Viernes con PyInstaller"
 echo "=========================================="
 echo ""
 
 # 1. Limpiar builds anteriores
 echo "1. Limpiando builds anteriores..."
-rm -rf build dist kirito.spec
+rm -rf build dist viernes.spec
 echo "   ✓ Carpetas build y dist eliminadas"
 echo ""
 
@@ -27,7 +27,7 @@ echo ""
 echo "3. Construyendo ejecutable..."
 
 # Comando base
-CMD="pyinstaller --noconsole --onefile --name=kirito"
+CMD="pyinstaller --noconsole --onefile --name=viernes"
 
 # Agregar archivos de sonido (obligatorios)
 CMD="$CMD --add-data sounds/wake.wav:sounds"
@@ -73,16 +73,16 @@ echo ""
 
 # 4. Verificar que se creó el ejecutable
 echo "4. Verificando resultado..."
-if [ -f "dist/kirito" ]; then
-    echo "   ✓ Ejecutable creado: dist/kirito"
-    ls -lh dist/kirito
+if [ -f "dist/viernes" ]; then
+    echo "   ✓ Ejecutable creado: dist/viernes"
+    ls -lh dist/viernes
     echo ""
     echo "=========================================="
     echo "✓ Build completado exitosamente"
     echo "=========================================="
     echo ""
     echo "Para ejecutar la aplicación:"
-    echo "  ./dist/kirito"
+    echo "  ./dist/viernes"
     echo ""
 else
     echo "   ✗ Error: No se creó el ejecutable"

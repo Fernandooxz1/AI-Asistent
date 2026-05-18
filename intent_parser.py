@@ -5,7 +5,7 @@ import sys
 from typing import Any, Dict
 import ollama
 
-logger = logging.getLogger("Kiro")
+logger = logging.getLogger("Viernes")
 
 
 class IntentParser:
@@ -114,7 +114,7 @@ class IntentParser:
         macros_permitidas = ", ".join(macros_dict.keys()) if macros_dict else "pausa, pantalla completa"
         
         system_prompt = f"""
-        Eres un motor de procesamiento de lenguaje natural EXTREMADAMENTE ESTRICTO para un asistente de voz llamado Kiro.
+        Eres un motor de procesamiento de lenguaje natural EXTREMADAMENTE ESTRICTO para un asistente de voz llamado Viernes.
         Tu objetivo es clasificar el comando del usuario y extraer las entidades relevantes utilizando ÚNICAMENTE las claves permitidas.
 
         INTENCIONES PERMITIDAS:
