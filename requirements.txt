@@ -1,0 +1,10 @@
+SpeechRecognition>=3.10.0
+pyaudio==0.2.14
+google-generativea1i==0.8.6  
+pyautogui==0.9.54
+rapidfuzz==3.9.3
+pytest==8.2.2
+hypothesis==6.103.0
+python-dotenv==1.0.1
+pyaudiowebcam==0.3.1
+pygame>=2.5.0
