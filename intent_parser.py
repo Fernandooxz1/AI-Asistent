@@ -165,63 +165,88 @@ class IntentParser:
         - macro: El nombre de la macro de teclado que mejor coincida semánticamente con la orden del usuario. Debe ser estrictamente uno de los siguientes valores exactos: {macros_permitidas}.
 
         REGLAS CRÍTICAS:
-        1. Responde ÚNICAMENTE con un objeto JSON válido (o un ARRAY de objetos JSON si se piden múltiples acciones). Está terminantemente prohibido contestar con texto libre o respuestas directas fuera del JSON.
-        2. Si el usuario pide múltiples acciones en una sola orden (ej: "busca X en youtube y después sube el volumen"), debes responder SIEMPRE con una LISTA (array) de objetos JSON individuales para cada acción, respetando el orden secuencial. Nunca mezcles entidades de intenciones distintas en un mismo objeto.
-        3. Usa EXCLUSIVAMENTE las claves de entidades listadas arriba. NO inventes nuevas claves.
-        3. Si el usuario te hace una pregunta general, te saluda o charla casualmente sobre cosas del pasado/estáticas, debes responder exactamente:
-            {{"intent": "conversar", "entities": {{"necesita_busqueda": "false", "respuesta": "aquí va la respuesta directa redactada de forma breve para ser leída por voz"}}}}
-            (ej: "cuantos goles tiene messi en 2012?" -> {{"intent": "conversar", "entities": {{"necesita_busqueda": "false", "respuesta": "Messi marcó 91 goles en el año 2012."}}}})
-        4. Si el usuario te hace una pregunta que requiera información del presente o tiempo real que no conoces de forma estática, debes responder exactamente:
-            {{"intent": "conversar", "entities": {{"necesita_busqueda": "true", "busqueda": "término de búsqueda optimizado para buscar en google/duckduckgo"}}}}
-            (ej: "contra quién juega River el sábado?" -> {{"intent": "conversar", "entities": {{"necesita_busqueda": "true", "busqueda": "partido de River Plate este sabado"}}}})
-        5. Si el usuario dice "poneme a davo en youtube", debes responder exactamente: 
-            {{"intent": "reproducir_youtube", "entities": {{"busqueda": "davo"}}}}
-        6. Si el usuario dice "abrir alacritty" o "abrir terminal", debes responder exactamente:
-            {{"intent": "abrir_aplicacion", "entities": {{"programa": "alacritty"}}}}
-        7. Si el usuario dice "tengo ganas de jugar al hytale", debes responder exactamente:
-            {{"intent": "lanzar_juego", "entities": {{"juego": "hytale"}}}}
-        8. Si la orden del usuario consiste en realizar un atajo de teclado, control de reproducción, volumen o macro similar, debes responder exactamente:
-            {{"intent": "automatizacion_teclado", "entities": {{"macro": "nombre_exacto_de_la_macro"}}}}
-            (ej: "bájale un poquito el volumen" -> {{"intent": "automatizacion_teclado", "entities": {{"macro": "baja el volumen"}}}})
-            (ej: "pone pausa por favor" -> {{"intent": "automatizacion_teclado", "entities": {{"macro": "pausa el video"}}}})
-        9. Si el usuario dice "poné a la cobra en kick" o "abrir kick con la cobra", debes responder exactamente:
-            {{"intent": "abrir_navegador", "entities": {{"plataforma": "kick", "creador": "la cobra"}}}}
-        10. Si el usuario dice "buscar cómo programar en python en google", debes responder exactamente:
-            {{"intent": "abrir_navegador", "entities": {{"plataforma": "google", "busqueda": "cómo programar en python"}}}}
+        1. Responde SIEMPRE y ÚNICAMENTE con un objeto JSON válido que contenga una única clave "intents". El valor de "intents" debe ser estrictamente un ARRAY (lista) de objetos JSON de acciones, respetando el orden secuencial. Esto aplica tanto si hay un solo comando como si hay múltiples.
+        2. Está terminantemente prohibido contestar con texto libre, explicaciones o bloques de markdown fuera del objeto JSON.
+        3. Si el usuario pide múltiples acciones en la misma frase (unidas por 'y', 'luego', 'después', etc.), debes separarlas en objetos de acción independientes dentro del array "intents". Nunca mezcles entidades de intenciones distintas en un mismo objeto.
+        4. Usa EXCLUSIVAMENTE las claves de entidades listadas arriba. NO inventes nuevas claves.
 
-         FORMATO JSON REQUERIDO:
-        Si el usuario pide una sola acción:
+        FORMATO JSON REQUERIDO (SIEMPRE SIGUE ESTA ESTRUCTURA):
         {{
-            "intent": "nombre_del_intent",
-            "entities": {{
-                "clave_permitida": "valor"
-            }}
+            "intents": [
+                {{
+                    "intent": "nombre_del_intent",
+                    "entities": {{
+                        "clave_permitida": "valor"
+                    }}
+                }}
+            ]
         }}
 
-        Si el usuario pide realizar varias acciones en la misma frase (unidas por 'y', 'luego', 'después', etc.), debes responder estrictamente con un ARRAY/LISTA de objetos JSON en el orden secuencial en el que deben ejecutarse.
-        
-        EJEMPLO DE SECUENCIA:
-        "busca hytale en youtube, ponelo en pantalla completa y subí el volumen" ->
-        [
-            {{
-                "intent": "reproducir_youtube",
-                "entities": {{
-                    "busqueda": "hytale"
+        EJEMPLO 1 (Una sola acción conversacional):
+        Pregunta: "cuantos goles tiene messi en 2012" ->
+        {{
+            "intents": [
+                {{
+                    "intent": "conversar",
+                    "entities": {{
+                        "necesita_busqueda": "false",
+                        "respuesta": "Messi marcó 91 goles en el año 2012."
+                    }}
                 }}
-            }},
-            {{
-                "intent": "automatizacion_teclado",
-                "entities": {{
-                    "macro": "pantalla completa"
+            ]
+        }}
+
+        EJEMPLO 2 (Una sola acción con búsqueda web):
+        Pregunta: "contra quién juega River el sábado" ->
+        {{
+            "intents": [
+                {{
+                    "intent": "conversar",
+                    "entities": {{
+                        "necesita_busqueda": "true",
+                        "busqueda": "partido de River Plate este sabado"
+                    }}
                 }}
-            }},
-            {{
-                "intent": "automatizacion_teclado",
-                "entities": {{
-                    "macro": "subi el volumen"
+            ]
+        }}
+
+        EJEMPLO 3 (Secuencia de múltiples comandos):
+        Pregunta: "pone el ultimo video de 412 en video completo y subi el volumen un poco" ->
+        {{
+            "intents": [
+                {{
+                    "intent": "reproducir_youtube",
+                    "entities": {{
+                        "busqueda": "ultimo video de 412"
+                    }}
+                }},
+                {{
+                    "intent": "automatizacion_teclado",
+                    "entities": {{
+                        "macro": "pone video completo"
+                    }}
+                }},
+                {{
+                    "intent": "automatizacion_teclado",
+                    "entities": {{
+                        "macro": "subi el volumen"
+                    }}
                 }}
-            }}
-        ]
+            ]
+        }}
+
+        EJEMPLO 4 (Abrir programa):
+        Pregunta: "abrir terminal" ->
+        {{
+            "intents": [
+                {{
+                    "intent": "abrir_aplicacion",
+                    "entities": {{
+                        "programa": "alacritty"
+                    }}
+                }}
+            ]
+        }}
         """
 
         try:

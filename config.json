@@ -1,5 +1,5 @@
 {
-  "model_name": "llama3:latest",
+  "model_name": "qwen2.5:3b",
   "whisper_model": "medium",
   "wake_word": "viernes",
   "max_recording_duration": 5,
