@@ -26,16 +26,14 @@
     "discord",
     "steam"
   ],
-  "intents": [
-    "abrir_aplicacion",
-    "abrir_navegador",
-    "reproducir_youtube",
-    "lanzar_juego",
-    "automatizacion_teclado",
-    "conversar",
-    "desconocido",
-    "error"
-  ],
+  "intents": {
+    "abrir_aplicacion": "Para abrir aplicaciones locales del sistema (ej: brave, nautilus, code, discord, steam).",
+    "abrir_navegador": "Para abrir sitios web o realizar búsquedas en Google, YouTube, Twitch o Kick. Ej: 'abrir google', 'buscar en google animedatos', 'entrar a kick de davo', 'abrir twitch de la cobra', 'entra a animedato'.",
+    "reproducir_youtube": "Para buscar y reproducir directamente videos o música en YouTube (ej: 'reproducir música de los 80', 'pone el ultimo video de davo').",
+    "lanzar_juego": "Para iniciar videojuegos de Steam u otras plataformas (ej: 'abrir resident evil 8', 'lanzar dragon ball sparking zero').",
+    "automatizacion_teclado": "Para ejecutar atajos o macros de teclado (ej: 'pausa', 'pantalla completa', 'modo cine', 'subir volumen').",
+    "conversar": "Para preguntas generales, charlas o solicitudes de información hablada que NO requieran abrir una ventana o sitio web en la pantalla del navegador (ej: 'quién es Messi', 'cuánto es 2+2', 'cómo está el clima hoy' para recibir una respuesta hablada)."
+  },
   "keyboard_macros": {
     "pantalla completa": [
       {"type": "ydotool", "args": ["key", "87:1", "87:0"]}

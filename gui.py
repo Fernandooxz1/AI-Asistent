@@ -213,16 +213,32 @@ class ViernesGUI(ctk.CTk):
         ctk.CTkLabel(info_row, text="Key word", font=ctk.CTkFont(size=11), text_color=_TEXT_DIM).pack(side="left")
         ctk.CTkLabel(info_row, text=f"« {self.assistant.listener.wake_word} »", font=ctk.CTkFont(size=12, weight="bold"), text_color=_ACCENT).pack(side="right")
 
+        btn_row = ctk.CTkFrame(self, fg_color="transparent")
+        btn_row.pack(fill="x", padx=30, pady=(0, 30))
+
         ctk.CTkButton(
-            self,
+            btn_row,
+            text="Web Remote",
+            fg_color=_ACCENT,
+            hover_color="#3cb9fc",
+            text_color="#ffffff",
+            corner_radius=10,
+            height=38,
+            width=160,
+            command=self._open_web_remote_info,
+        ).pack(side="left", expand=True, padx=(0, 10))
+
+        ctk.CTkButton(
+            btn_row,
             text="Minimize",
             fg_color="#2a2a2a",
             hover_color="#3a3a3a",
             text_color=_TEXT_DIM,
             corner_radius=10,
             height=38,
+            width=160,
             command=self._hide_to_tray,
-        ).pack(fill="x", padx=30, pady=(0, 30))
+        ).pack(side="right", expand=True)
 
     def _show_fatal_error(self, message: str) -> None:
         """Muestra un mensaje de error crítico."""
@@ -289,6 +305,107 @@ class ViernesGUI(ctk.CTk):
         icon.stop()
         self.after(0, self.quit)
         self.after(0, self.destroy)
+
+    def _open_web_remote_info(self) -> None:
+        """Abre la ventana con el QR y la URL de control remoto."""
+        try:
+            import socket
+            def get_lan_ip() -> str:
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(("8.8.8.8", 80))
+                    ip = s.getsockname()[0]
+                    s.close()
+                    return ip
+                except Exception:
+                    return "127.0.0.1"
+            
+            lan_ip = get_lan_ip()
+            url = f"https://{lan_ip}:8000/"
+            
+            # Abrir ventana toplevel
+            ViernesWebRemoteWindow(self, url)
+        except Exception as e:
+            logger.error(f"Error al abrir info de web remote: {e}")
+
+
+class ViernesWebRemoteWindow(ctk.CTkToplevel):
+    """Ventana pop-up que muestra el QR y la URL de control remoto."""
+    def __init__(self, parent, url: str) -> None:
+        super().__init__(parent)
+        self.title("Web Remote Control")
+        self.geometry("340x440")
+        self.resizable(False, False)
+        self.configure(fg_color="#3e3d3d")
+        
+        # Estilo para que sea modal (seguro ante grab failures en Wayland/Hyprland)
+        try:
+            self.transient(parent)
+            self.wait_visibility()
+            self.grab_set()
+        except Exception as e:
+            logger.warning(f"No se pudo establecer el grab modal (ignorable): {e}")
+
+        ctk.CTkLabel(
+            self,
+            text="Web Remote Control",
+            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            text_color="#30a1de"
+        ).pack(pady=(20, 10))
+
+        ctk.CTkLabel(
+            self,
+            text="Escanea el código QR con tu móvil\n(Deben estar en la misma red Wi-Fi):",
+            font=ctk.CTkFont(size=12),
+            text_color="#d7d7d7",
+            justify="center"
+        ).pack(pady=(0, 15))
+
+        # Generar código QR
+        try:
+            import qrcode
+            qr = qrcode.QRCode(version=1, box_size=5, border=2)
+            qr.add_data(url)
+            qr.make(fit=True)
+            pil_img = qr.make_image(fill_color="#000000", back_color="#ffffff").convert("RGB")
+            ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(180, 180))
+            
+            qr_label = ctk.CTkLabel(self, image=ctk_img, text="")
+            qr_label.image = ctk_img  # Mantener referencia
+            qr_label.pack(pady=5)
+        except Exception as e:
+            logger.error(f"Error al generar código QR: {e}")
+            ctk.CTkLabel(self, text="[Error al generar código QR]", text_color="#f87171").pack(pady=10)
+
+        # Enlace visible
+        url_label = ctk.CTkLabel(
+            self,
+            text=url,
+            font=ctk.CTkFont(family="Consolas", size=14, weight="bold"),
+            text_color="#30a1de",
+            cursor="hand2"
+        )
+        url_label.pack(pady=(15, 10))
+
+        def copy_url(event=None):
+            self.clipboard_clear()
+            self.clipboard_append(url)
+            copied_btn.configure(text="¡Copiado al portapapeles!", fg_color="#30d158")
+            self.after(2000, lambda: copied_btn.configure(text="Copiar URL", fg_color="#2a2a2a"))
+
+        url_label.bind("<Button-1>", copy_url)
+
+        copied_btn = ctk.CTkButton(
+            self,
+            text="Copiar URL",
+            fg_color="#2a2a2a",
+            hover_color="#3a3a3a",
+            text_color="#d7d7d7",
+            corner_radius=8,
+            height=28,
+            command=copy_url
+        )
+        copied_btn.pack(pady=(0, 20))
 
 
 # ─── Entry point ──────────────────────────────────────────────────────────────
