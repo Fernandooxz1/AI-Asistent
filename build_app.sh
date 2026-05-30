@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script para construir la aplicación Kiro con PyInstaller
+# Script para construir la aplicación Viernes con PyInstaller
 
 echo "=========================================="
 echo "Construyendo Viernes con PyInstaller"
@@ -27,7 +27,7 @@ echo ""
 echo "3. Construyendo ejecutable..."
 
 # Comando base
-CMD="pyinstaller --noconsole --onefile --name=viernes"
+CMD="pyinstaller --noconsole --onedir --name=viernes"
 
 # Agregar archivos de sonido (obligatorios)
 CMD="$CMD --add-data sounds/wake.wav:sounds"
@@ -44,19 +44,41 @@ if [ -f "config.json" ]; then
     echo "   ✓ Incluyendo config.json"
 fi
 
-# Agregar hidden imports para los módulos de actions
+# Agregar hidden imports para los módulos de actions (incluyendo nuevos)
 CMD="$CMD --hidden-import=actions.system_action"
 CMD="$CMD --hidden-import=actions.browser_action"
 CMD="$CMD --hidden-import=actions.youtube_play_action"
 CMD="$CMD --hidden-import=actions.base_action"
+CMD="$CMD --hidden-import=actions.game_launcher_action"
+CMD="$CMD --hidden-import=actions.keyboard_automation_action"
+CMD="$CMD --hidden-import=actions.conversational_action"
 
-# Agregar otras dependencias importantes
+# Agregar otras dependencias importantes y soporte para tray en Wayland
 CMD="$CMD --hidden-import=speech_recognition"
 CMD="$CMD --hidden-import=google.generativeai"
 CMD="$CMD --hidden-import=pyautogui"
+CMD="$CMD --hidden-import=ollama"
+CMD="$CMD --hidden-import=pystray"
+CMD="$CMD --hidden-import=gi"
+CMD="$CMD --hidden-import=gi.repository.Gtk"
+CMD="$CMD --hidden-import=gi.repository.AppIndicator3"
+CMD="$CMD --hidden-import=gi.repository.AyatanaAppIndicator3"
+CMD="$CMD --hidden-import=vosk"
+CMD="$CMD --hidden-import=numpy"
+CMD="$CMD --hidden-import=tts"
+CMD="$CMD --hidden-import=faster_whisper"
+
+# Recolectar todas las librerías dinámicas de Nvidia CUDA para PyInstaller
+CMD="$CMD --collect-all nvidia.cublas"
+CMD="$CMD --collect-all nvidia.cudnn"
+CMD="$CMD --collect-all nvidia.cuda_nvrtc"
+CMD="$CMD --collect-all vosk"
 
 # Agregar el archivo principal
 CMD="$CMD gui.py"
+
+
+
 
 # Ejecutar el comando
 if [ -d "venv" ]; then
@@ -73,16 +95,27 @@ echo ""
 
 # 4. Verificar que se creó el ejecutable
 echo "4. Verificando resultado..."
-if [ -f "dist/viernes" ]; then
-    echo "   ✓ Ejecutable creado: dist/viernes"
-    ls -lh dist/viernes
+if [ -f "dist/viernes/viernes" ]; then
+    echo "   ✓ Ejecutable creado: dist/viernes/viernes"
+    ls -lh dist/viernes/viernes
+    
+    # Copiar config.json y .env (si existe) a la carpeta dist/viernes/
+    if [ -f "config.json" ]; then
+        cp config.json dist/viernes/
+        echo "   ✓ Copiado config.json a dist/viernes/"
+    fi
+    if [ -f ".env" ]; then
+        cp .env dist/viernes/
+        echo "   ✓ Copiado .env a dist/viernes/"
+    fi
+    
     echo ""
     echo "=========================================="
     echo "✓ Build completado exitosamente"
     echo "=========================================="
     echo ""
     echo "Para ejecutar la aplicación:"
-    echo "  ./dist/viernes"
+    echo "  ./dist/viernes/viernes"
     echo ""
 else
     echo "   ✗ Error: No se creó el ejecutable"

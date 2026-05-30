@@ -1,6 +1,11 @@
 {
+  "model_name": "llama3:latest",
+  "whisper_model": "medium",
   "wake_word": "viernes",
   "max_recording_duration": 5,
+
+
+
   "silence_threshold": 1.5,
   "language": "es-ES",
   "intent_mapping": {
@@ -8,7 +13,8 @@
     "abrir_navegador": "BrowserActionModule",
     "reproducir_youtube": "YoutubePlayActionModule",
     "lanzar_juego": "GameLauncherModule",
-    "automatizacion_teclado": "KeyboardAutomationModule"
+    "automatizacion_teclado": "KeyboardAutomationModule",
+    "conversar": "ConversationalModule"
   },
   "whitelist_apps": [
     "brave",
@@ -26,6 +32,7 @@
     "reproducir_youtube",
     "lanzar_juego",
     "automatizacion_teclado",
+    "conversar",
     "desconocido",
     "error"
   ],
@@ -58,7 +65,7 @@
       {"type": "ydotool", "args": ["key", "-d", "150", "125:1", "42:1", "50:1", "50:0", "42:0", "125:0" , "125:1", "9:1", "9:0", "125:0", "125:1", "57:1", "57:0", "125:0", "49:1", "49:0", "24:1", "24:0", "28:1", "28:0"]}
     ],
     "adios": [
-      {"type": "comando", "args": ["pkill", "-f", "kirito"]}
+      {"type": "comando", "args": ["pkill", "-f", "viernes"]}
     ],
     "cierra la ventana": [
       {"type": "ydotool", "args": ["key", "125:1", "17:1", "17:0", "125:0"]}
@@ -95,14 +102,23 @@
     "visual studio": "code",
     "visual studio code": "code",
     "navegador": "brave",
-    "cobra": "la cobra",
+    "kik": "kick",
+    "kic": "kick",
+    "geek": "kick",
     "sube el volumen": "subi el volumen",
+    "subir el volumen": "subi el volumen",
+    "subir volumen": "subi el volumen",
     "baja el volumen": "baja el volumen",
+    "bajar el volumen": "baja el volumen",
+    "bajar volumen": "baja el volumen",
     "silencia": "mute",
     "subile" : "subi el volumen",
     "bajale" : "baja el volumen",
+
     "cine": "modo cine",
     "pone musiquita": "pone musica",
+    "pon musiquita": "pone musica",
+    "pone musica": "pone musica",
     "reanuda la musica": "pone musica",
     "video completo": "pone video completo",
     "dale a la f": "pone video completo",
@@ -110,6 +126,10 @@
     "cerrate": "adios",
     "pone promiedos": "poneme promiedos",
     "cerra la ventana": "cierra la ventana",
+    "cerrar la ventana": "cierra la ventana",
+    "cerrar ventana": "cierra la ventana",
+    "sierra la ventana": "cierra la ventana",
+    "sierra ventana": "cierra la ventana",
     "pausa": "pausa el video"
   }
 }

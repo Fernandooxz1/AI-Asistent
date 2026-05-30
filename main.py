@@ -2,24 +2,29 @@ import os
 import sys
 import json
 import logging
+import time
+import subprocess
 from typing import Optional
 from dotenv import load_dotenv
+
 
 from audio_listener import AudioListener
 from intent_parser import IntentParser
 from dispatcher import Dispatcher
+import tts
+
 
 # ─── Configuración global de logging ─────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
-logger = logging.getLogger("Kiro")
+logger = logging.getLogger("Viernes")
 
 
-class KiroAssistant:
+class ViernesAssistant:
     """
-    Orquestador principal del asistente de voz Kiro.
+    Orquestador principal del asistente de voz Viernes.
 
     Coordina el ciclo de vida completo de cada interacción:
         AudioListener → wake word → record_command
@@ -32,13 +37,12 @@ class KiroAssistant:
 
     def __init__(self, config_path: str = "config.json", state_callback=None) -> None:
         """
-        Inicializa todos los subsistemas de Kiro.
+        Inicializa todos los subsistemas de Viernes.
 
         Pasos:
         1. Carga las variables de entorno desde .env.
-        2. Valida que GEMINI_API_KEY esté definida.
-        3. Lee y parsea el archivo de configuración JSON.
-        4. Instancia AudioListener, IntentParser y Dispatcher.
+        2. Lee y parsea el archivo de configuración JSON.
+        3. Instancia AudioListener, IntentParser y Dispatcher.
 
         Args:
             config_path:    Ruta al archivo de configuración JSON.
@@ -47,7 +51,6 @@ class KiroAssistant:
                             de fase a la GUI de forma desacoplada.
 
         Raises:
-            ValueError: Si GEMINI_API_KEY no está definida en el entorno.
             FileNotFoundError: Si el archivo de configuración no existe.
             json.JSONDecodeError: Si el archivo de configuración no es JSON válido.
         """
@@ -55,7 +58,7 @@ class KiroAssistant:
         # Si el script está congelado (binario), usamos la ruta del ejecutable.
         # Si no, usamos la ruta del archivo .py actual.
         if getattr(sys, "frozen", False):
-            base_path = os.path.dirname(sys.executable)
+            base_path = os.path.dirname(os.path.realpath(sys.executable))
         else:
             base_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -83,16 +86,52 @@ class KiroAssistant:
         self.parser     = IntentParser(config=config)
         self.dispatcher = Dispatcher(config=config)
 
+        # 4. Verificar e iniciar Ollama de forma automática si no está corriendo
+        self.ollama_process = None
+        if self._check_ollama_running():
+            logger.info("Ollama ya está corriendo en el puerto 11434.")
+        else:
+            logger.info("Ollama no está corriendo. Iniciando servicio local de Ollama...")
+            try:
+                self.ollama_process = subprocess.Popen(
+                    ["ollama", "serve"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+                # Esperar hasta 3 segundos a que responda el puerto
+                for _ in range(6):
+                    time.sleep(0.5)
+                    if self._check_ollama_running():
+                        logger.info("Servicio local de Ollama iniciado con éxito.")
+                        break
+                else:
+                    logger.warning("El servicio local de Ollama tardó demasiado en responder.")
+            except Exception as e:
+                logger.error(f"No se pudo iniciar Ollama automáticamente: {e}")
+
         logger.info("Todos los subsistemas iniciados correctamente.")
 
+
+    def _check_ollama_running(self) -> bool:
+        """Verifica si el servicio de Ollama responde en el puerto por defecto 11434."""
+        import socket
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(0.5)
+                s.connect(("127.0.0.1", 11434))
+                return True
+        except (socket.error, ConnectionRefusedError):
+            return False
+
     def run(self, stop_event: Optional["threading.Event"] = None) -> None:
+
         """
         Bucle principal de ejecución del asistente.
 
         Ciclo:
             1. Espera la wake word de forma bloqueante.
             2. Graba el comando del usuario.
-            3. Parsea el texto con Gemini para obtener intent + entities.
+            3. Parsea el texto con Ollama para obtener intent + entities.
             4. Loguea la intención detectada para trazabilidad.
             5. Despacha el intent al módulo de acción correspondiente.
             6. Vuelve al paso 1.
@@ -127,37 +166,94 @@ class KiroAssistant:
 
                 # ── Paso 3: Parsear la intención ───────────────────────────
                 logger.info(f"Procesando comando: '{comando}'")
-                intent_json: dict = self.parser.parse(comando)
-
-                # ── Paso 4: Mostrar resultado del parser ───────────────────
-                intent   = intent_json.get("intent", "desconocido")
-                entities = intent_json.get("entities", {})
-                print()
-                print(f"  🧠 Intent detectado : {intent}")
-                print(f"  📦 Entidades        : {entities}")
-                print()
-
-                # ── Paso 5: Despachar al módulo de acción ─────────────────
                 try:
-                    self.dispatcher.dispatch(intent_json)
+                    commands = self.parser.parse(comando)
+                    if isinstance(commands, dict):
+                        commands = [commands]
                 except Exception as e:
-                    logger.error(f"Error en el módulo de acción para '{intent}': {e}")
+                    logger.error(f"Error al parsear el comando '{comando}': {e}")
+                    commands = [{"intent": "error", "entities": {}}]
+
+                # ── Paso 4: Confirmación de voz (TTS) única ──────────────────────
+                if len(commands) > 1:
+                    tts.say("Entendido jefe, ejecutando secuencia")
+                else:
+                    cmd = commands[0]
+                    intent = cmd.get("intent", "desconocido")
+                    entities = cmd.get("entities", {})
+                    if intent in ["desconocido", "error"]:
+                        tts.say("No te entendí jefe, ¿podrías repetirlo?")
+                    else:
+                        if intent == "abrir_aplicacion":
+                            programa = entities.get("programa", "")
+                            tts.say(f"Entendido jefe, abriendo {programa}")
+                        elif intent == "abrir_navegador":
+                            plataforma = entities.get("plataforma", "")
+                            tts.say(f"Entendido jefe, abriendo {plataforma}")
+                        elif intent == "reproducir_youtube":
+                            busqueda = entities.get("busqueda", "")
+                            tts.say(f"Entendido jefe, buscando {busqueda} en youtube")
+                        elif intent == "lanzar_juego":
+                            juego = entities.get("juego", "")
+                            tts.say(f"Entendido jefe, lanzando {juego}")
+                        elif intent == "automatizacion_teclado":
+                            tts.say("Ejecutando macro, jefe")
+                        elif intent == "conversar":
+                            pass  # El módulo ConversationalModule reproduce la respuesta directamente
+                        else:
+                            tts.say("Entendido jefe")
+
+                # ── Paso 5: Despachar secuencialmente a los módulos de acción ───────
+                for idx, cmd in enumerate(commands):
+                    intent = cmd.get("intent", "desconocido")
+                    entities = cmd.get("entities", {})
+                    
+                    print()
+                    print(f"  🧠 Intent detectado ({idx+1}/{len(commands)}): {intent}")
+                    print(f"  📦 Entidades        : {entities}")
+                    print()
+                    
+                    if intent in ["desconocido", "error"]:
+                        continue
+
+                    # Pausa inteligente entre comandos
+                    if idx > 0:
+                        prev_intent = commands[idx-1].get("intent")
+                        # Si el comando anterior fue abrir algo o reproducir youtube, pausamos 2.5 segundos para dar tiempo a la carga
+                        if prev_intent in ["reproducir_youtube", "abrir_aplicacion", "abrir_navegador", "lanzar_juego"]:
+                            logger.info("Pausando 2.5 segundos para permitir la carga de la acción anterior...")
+                            time.sleep(2.5)
+                        else:
+                            time.sleep(0.5)
+                            
+                    try:
+                        self.dispatcher.dispatch(cmd)
+                    except Exception as e:
+                        logger.error(f"Error en el módulo de acción para '{intent}': {e}")
 
         except KeyboardInterrupt:
             print()
-            print("👋 Kiro apagado. ¡Hasta la próxima!")
+            print("👋 Viernes apagado. ¡Hasta la próxima!")
             print()
+        finally:
+            if self.ollama_process:
+                logger.info("Deteniendo el servicio local de Ollama...")
+                try:
+                    self.ollama_process.terminate()
+                    self.ollama_process.wait(timeout=2)
+                except Exception as e:
+                    logger.error(f"Error al detener Ollama: {e}")
+            logger.info("Bucle del asistente finalizado.")
 
-        logger.info("Bucle del asistente finalizado.")
 
 
 # ─── Entry point ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     try:
-        assistant = KiroAssistant()
+        assistant = ViernesAssistant()
         assistant.run()
     except (ValueError, FileNotFoundError) as e:
         # Errores de configuración al iniciar: se muestran limpiamente sin traceback
         print(f"\n❌ Error de inicialización: {e}\n")
     except Exception as e:
-        logger.critical(f"Error fatal inesperado al iniciar Kiro: {e}", exc_info=True)
+        logger.critical(f"Error fatal inesperado al iniciar Viernes: {e}", exc_info=True)

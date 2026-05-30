@@ -1,8 +1,8 @@
 #!/bin/bash
-# Script para diagnosticar y solucionar problemas de audio en Kiro
+# Script para diagnosticar y solucionar problemas de audio en Viernes
 
 echo "=========================================="
-echo "Diagnóstico de Audio - Kiro"
+echo "Diagnóstico de Audio - Viernes"
 echo "=========================================="
 echo ""
 
@@ -130,7 +130,7 @@ echo "=========================================="
 echo "Diagnóstico completado"
 echo "=========================================="
 echo ""
-echo "Si escuchaste los sonidos correctamente, Kiro debería funcionar."
+echo "Si escuchaste los sonidos correctamente, Viernes debería funcionar."
 echo "Si no escuchaste nada o escuchaste estática:"
 echo "  1. Verifica que tus altavoces/auriculares estén conectados"
 echo "  2. Verifica el volumen del sistema"

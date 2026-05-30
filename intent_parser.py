@@ -15,7 +15,8 @@ class IntentParser:
 
     def __init__(self, config: Dict[str, Any], api_key: str = None) -> None:
         self.config: Dict[str, Any] = config
-        self.model_name = "llama3"
+        self.model_name = self.config.get("model_name", "llama3")
+
 
     def _validate_intent_json(self, response: dict) -> bool:
         """Valida que el diccionario de respuesta contenga las claves obligatorias
@@ -69,30 +70,60 @@ class IntentParser:
         except Exception as e:
             logger.warning(f"Error en sanitización fonética: {e}")
 
-        # ── 2. EL CORTOCIRCUITO (Reflejos instantáneos sin usar la IA) ──────────
+        # ── 2. EL CORTOCIRCUITO (Reflejos instantáneos sin usar la IA con Coincidencia Difusa) ──────────
         try:
             import unicodedata
+            from rapidfuzz import fuzz
+            
+            # Si contiene conectores secuenciales, saltamos el cortocircuito para que la IA procese la secuencia completa
+            conectores = [" y ", " luego ", " despues ", " después "]
+            es_compuesto = any(conector in f" {text.lower()} " for conector in conectores)
+            
             macros_dict = self.config.get("keyboard_macros", {})
-            if macros_dict:
+            if macros_dict and not es_compuesto:
                 # Normalizamos el texto del micrófono (sacamos tildes)
-                text_norm = unicodedata.normalize('NFKD', text).encode('ASCII', 'ignore').decode('utf-8')
+                text_norm = unicodedata.normalize('NFKD', text).encode('ASCII', 'ignore').decode('utf-8').strip()
                 
-                # Ordenamos las macros de más largas a más cortas
-                macros_ordenadas = sorted(macros_dict.keys(), key=len, reverse=True)
+                best_score = 0.0
+                best_macro = None
                 
-                for macro in macros_ordenadas:
-                    macro_norm = unicodedata.normalize('NFKD', macro.lower()).encode('ASCII', 'ignore').decode('utf-8')
-                    # Si la macro está en lo que dijiste, abortamos la IA y disparamos de una
+                for macro in macros_dict.keys():
+                    macro_norm = unicodedata.normalize('NFKD', macro.lower()).encode('ASCII', 'ignore').decode('utf-8').strip()
+                    
+                    # 1. Coincidencia exacta de substring (Prioridad máxima)
                     if macro_norm in text_norm:
-                        logger.info(f"⚡ [Cortocircuito] Macro detectada al instante: '{macro}'")
-                        return {
-                            "intent": "automatizacion_teclado",
-                            "entities": {"_raw_text": text}
-                        }
+                        score = 100.0
+                    else:
+                        # 2. Coincidencia difusa usando el ratio de Levenshtein
+                        score = fuzz.ratio(macro_norm, text_norm)
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_macro = macro
+                
+                # Umbral de coincidencia difusa: 75%
+                if best_score >= 75.0:
+                    logger.info(f"⚡ [Cortocircuito Difuso] Macro detectada: '{best_macro}' (Similitud: {best_score:.1f}%)")
+                    return [{
+                        "intent": "automatizacion_teclado",
+                        "entities": {"macro": best_macro, "_raw_text": best_macro}
+                    }]
         except Exception as e:
-            logger.warning(f"Error en cortocircuito de macros: {e}")
+            logger.warning(f"Error en cortocircuito de macros difuso: {e}")
+
 
         # ── 3. Construcción del bloque de intents para el prompt ──────────
+        import datetime
+        dias = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+        meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+        ahora = datetime.datetime.now()
+        dia_semana = dias[ahora.weekday()]
+        dia_mes = ahora.day
+        mes = meses[ahora.month - 1]
+        anio = ahora.year
+        hora_min = ahora.strftime("%H:%M")
+        fecha_actual = f"{dia_semana}, {dia_mes} de {mes} de {anio}, a las {hora_min}"
+
         intents_config = self.config.get("intents", [])
         intents_list = []
 
@@ -117,6 +148,9 @@ class IntentParser:
         Eres un motor de procesamiento de lenguaje natural EXTREMADAMENTE ESTRICTO para un asistente de voz llamado Viernes.
         Tu objetivo es clasificar el comando del usuario y extraer las entidades relevantes utilizando ÚNICAMENTE las claves permitidas.
 
+        INFORMACIÓN DE TIEMPO REAL:
+        - Fecha y hora actual del sistema: {fecha_actual}
+
         INTENCIONES PERMITIDAS:
         {intents_block}
 
@@ -126,26 +160,68 @@ class IntentParser:
         - busqueda: Términos de búsqueda de video o web.
         - programa: Nombre del programa a ejecutar. SÓLO podés elegir de esta lista: {apps_permitidas}.
         - juego: Nombre del videojuego (ej: resident evil, hytale, dayz).
+        - respuesta: La respuesta directa a la pregunta o comentario general del usuario (SÓLO si necesita_busqueda es "false").
+        - necesita_busqueda: "true" si la pregunta del usuario requiere buscar en internet información del presente o tiempo real (clima, partidos, noticias recientes); "false" de lo contrario (preguntas históricas, chistes, charla casual o datos estáticos).
+        - macro: El nombre de la macro de teclado que mejor coincida semánticamente con la orden del usuario. Debe ser estrictamente uno de los siguientes valores exactos: {macros_permitidas}.
 
         REGLAS CRÍTICAS:
-        1. Responde ÚNICAMENTE con un JSON válido. No incluyas texto extra ni Markdown fuera del JSON.
-        2. Usa EXCLUSIVAMENTE las claves de entidades listadas arriba. NO inventes nuevas claves.
-        3. Si el usuario dice "poneme a davo en youtube", debes responder exactamente: 
+        1. Responde ÚNICAMENTE con un objeto JSON válido (o un ARRAY de objetos JSON si se piden múltiples acciones). Está terminantemente prohibido contestar con texto libre o respuestas directas fuera del JSON.
+        2. Si el usuario pide múltiples acciones en una sola orden (ej: "busca X en youtube y después sube el volumen"), debes responder SIEMPRE con una LISTA (array) de objetos JSON individuales para cada acción, respetando el orden secuencial. Nunca mezcles entidades de intenciones distintas en un mismo objeto.
+        3. Usa EXCLUSIVAMENTE las claves de entidades listadas arriba. NO inventes nuevas claves.
+        3. Si el usuario te hace una pregunta general, te saluda o charla casualmente sobre cosas del pasado/estáticas, debes responder exactamente:
+            {{"intent": "conversar", "entities": {{"necesita_busqueda": "false", "respuesta": "aquí va la respuesta directa redactada de forma breve para ser leída por voz"}}}}
+            (ej: "cuantos goles tiene messi en 2012?" -> {{"intent": "conversar", "entities": {{"necesita_busqueda": "false", "respuesta": "Messi marcó 91 goles en el año 2012."}}}})
+        4. Si el usuario te hace una pregunta que requiera información del presente o tiempo real que no conoces de forma estática, debes responder exactamente:
+            {{"intent": "conversar", "entities": {{"necesita_busqueda": "true", "busqueda": "término de búsqueda optimizado para buscar en google/duckduckgo"}}}}
+            (ej: "contra quién juega River el sábado?" -> {{"intent": "conversar", "entities": {{"necesita_busqueda": "true", "busqueda": "partido de River Plate este sabado"}}}})
+        5. Si el usuario dice "poneme a davo en youtube", debes responder exactamente: 
             {{"intent": "reproducir_youtube", "entities": {{"busqueda": "davo"}}}}
-        4. Si el usuario dice "abrir alacritty" o "abrir terminal", debes responder exactamente:
+        6. Si el usuario dice "abrir alacritty" o "abrir terminal", debes responder exactamente:
             {{"intent": "abrir_aplicacion", "entities": {{"programa": "alacritty"}}}}
-        5. Si el usuario dice "tengo ganas de jugar al hytale", debes responder exactamente:
+        7. Si el usuario dice "tengo ganas de jugar al hytale", debes responder exactamente:
             {{"intent": "lanzar_juego", "entities": {{"juego": "hytale"}}}}
-        6. Si el usuario dice ALGUNA de estas frases exactas de control: {macros_permitidas}, debes responder SIEMPRE exactamente esto:
-            {{"intent": "automatizacion_teclado", "entities": {{}}}}
+        8. Si la orden del usuario consiste en realizar un atajo de teclado, control de reproducción, volumen o macro similar, debes responder exactamente:
+            {{"intent": "automatizacion_teclado", "entities": {{"macro": "nombre_exacto_de_la_macro"}}}}
+            (ej: "bájale un poquito el volumen" -> {{"intent": "automatizacion_teclado", "entities": {{"macro": "baja el volumen"}}}})
+            (ej: "pone pausa por favor" -> {{"intent": "automatizacion_teclado", "entities": {{"macro": "pausa el video"}}}})
+        9. Si el usuario dice "poné a la cobra en kick" o "abrir kick con la cobra", debes responder exactamente:
+            {{"intent": "abrir_navegador", "entities": {{"plataforma": "kick", "creador": "la cobra"}}}}
+        10. Si el usuario dice "buscar cómo programar en python en google", debes responder exactamente:
+            {{"intent": "abrir_navegador", "entities": {{"plataforma": "google", "busqueda": "cómo programar en python"}}}}
 
-        FORMATO JSON REQUERIDO:
+         FORMATO JSON REQUERIDO:
+        Si el usuario pide una sola acción:
         {{
             "intent": "nombre_del_intent",
             "entities": {{
                 "clave_permitida": "valor"
             }}
         }}
+
+        Si el usuario pide realizar varias acciones en la misma frase (unidas por 'y', 'luego', 'después', etc.), debes responder estrictamente con un ARRAY/LISTA de objetos JSON en el orden secuencial en el que deben ejecutarse.
+        
+        EJEMPLO DE SECUENCIA:
+        "busca hytale en youtube, ponelo en pantalla completa y subí el volumen" ->
+        [
+            {{
+                "intent": "reproducir_youtube",
+                "entities": {{
+                    "busqueda": "hytale"
+                }}
+            }},
+            {{
+                "intent": "automatizacion_teclado",
+                "entities": {{
+                    "macro": "pantalla completa"
+                }}
+            }},
+            {{
+                "intent": "automatizacion_teclado",
+                "entities": {{
+                    "macro": "subi el volumen"
+                }}
+            }}
+        ]
         """
 
         try:
@@ -156,10 +232,14 @@ class IntentParser:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": text},
                 ],
+                format="json",
                 options={"temperature": 0.1},
+                keep_alive=-1
             )
 
+
             raw_output = response["message"]["content"].strip()
+            logger.info(f"Ollama RAW: {raw_output}")
 
             # Limpieza de bloques de código Markdown si Llama3 los mete
             if "```json" in raw_output:
@@ -174,42 +254,64 @@ class IntentParser:
             try:
                 data = json.loads(raw_output)
             except json.JSONDecodeError:
-                match = re.search(r"\{.*\}", raw_output, re.DOTALL)
-                if match:
-                    data = json.loads(match.group())
-                else:
+                # Intentar buscar array JSON primero
+                match_arr = re.search(r"\[.*\]", raw_output, re.DOTALL)
+                if match_arr:
+                    try:
+                        data = json.loads(match_arr.group())
+                    except json.JSONDecodeError:
+                        pass
+                if data is None:
+                    # Intentar buscar objeto JSON
+                    match_obj = re.search(r"\{.*\}", raw_output, re.DOTALL)
+                    if match_obj:
+                        try:
+                            data = json.loads(match_obj.group())
+                        except json.JSONDecodeError:
+                            pass
+                if data is None:
                     logger.error(
                         f"No se pudo extraer JSON de la respuesta: {raw_output}"
                     )
-                    return fallback
+                    return [fallback]
 
-            # ── 6. Normalización de Lista a Diccionario (Arreglo de Ollama) ──
-            if isinstance(data, list):
-                if len(data) > 0:
-                    logger.info(
-                        "Detectada lista en respuesta de Ollama, desempaquetando..."
-                    )
-                    data = data[0]
-                else:
-                    return fallback
-
-            # ── 7. Validación final y retorno ──────────────────────────────
-            if isinstance(data, dict) and self._validate_intent_json(data):
-                # Normalizamos 'entities' por si el LLM devolvió 'entidades'
-                if "entities" not in data and "entidades" in data:
-                    data["entities"] = data.pop("entidades")
+            # Normalizar a una lista de comandos para soportar AND / Secuencias
+            if isinstance(data, dict):
+                # Si el LLM envolvió la lista de comandos en una clave (muy común al forzar JSON)
+                list_keys = ["intents", "commands", "actions", "seq", "lista", "comandos", "secuencia"]
+                extracted_list = None
+                for lk in list_keys:
+                    if lk in data and isinstance(data[lk], list):
+                        extracted_list = data[lk]
+                        break
                 
-                # ¡SALVAVIDAS!: Inyectamos el texto original para que el Dispatcher lo tenga de respaldo
-                if "entities" in data:
-                    data["entities"]["_raw_text"] = text
-                    
-                return data
+                if extracted_list is not None:
+                    commands_list = extracted_list
+                else:
+                    commands_list = [data]
+            elif isinstance(data, list):
+                commands_list = data
             else:
-                logger.error(
-                    f"El formato devuelto falló la validación final: {data}"
-                )
-                return fallback
+                commands_list = [fallback]
+
+            # ── 6. Validación final y retorno de la lista ──────────────────
+            valid_commands = []
+            for cmd in commands_list:
+                if isinstance(cmd, dict) and self._validate_intent_json(cmd):
+                    if "entities" not in cmd and "entidades" in cmd:
+                        cmd["entities"] = cmd.pop("entidades")
+                    if "entities" not in cmd:
+                        cmd["entities"] = {}
+                    
+                    # ¡SALVAVIDAS!: Inyectamos el texto original para que el Dispatcher lo tenga de respaldo
+                    cmd["entities"]["_raw_text"] = text
+                    valid_commands.append(cmd)
+            
+            if valid_commands:
+                return valid_commands
+            else:
+                return [fallback]
 
         except Exception as e:
             logger.error(f"Error crítico durante el parseo con Ollama: {e}")
-            return fallback
+            return [fallback]

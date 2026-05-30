@@ -1,10 +1,83 @@
-import speech_recognition as sr
-import logging
 import os
 import sys
-import subprocess
+import ctypes
+
+def preload_cuda_libraries():
+    """
+    Busca y precarga las librerías dinámicas de Nvidia CUDA (cuBLAS, cuDNN, etc.)
+    en la memoria del proceso usando ctypes con RTLD_GLOBAL. Esto es necesario
+    porque la carga dinámica (dlopen) a través de ctranslate2/faster-whisper
+    falla al no buscar en carpetas internas de pip (site-packages) o PyInstaller (_MEIPASS).
+    """
+    libs_to_load = [
+        "libcublasLt.so.12",
+        "libcublas.so.12",
+        "libcudnn.so.9",
+        "libnvrtc.so.12"
+    ]
+    
+    search_dirs = []
+    
+    # 1. PyInstaller MEIPASS
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        search_dirs.append(sys._MEIPASS)
+        search_dirs.append(os.path.join(sys._MEIPASS, "nvidia"))
+        
+    # 2. Virtual environment site-packages
+    try:
+        venv_bin = os.path.dirname(sys.executable)
+        lib_dir = os.path.abspath(os.path.join(venv_bin, "..", "lib"))
+        if os.path.exists(lib_dir):
+            for py_dir in os.listdir(lib_dir):
+                if py_dir.startswith("python"):
+                    sp = os.path.join(lib_dir, py_dir, "site-packages")
+                    if os.path.exists(sp):
+                        search_dirs.append(os.path.join(sp, "nvidia"))
+    except Exception:
+        pass
+
+    # Buscar y cargar cada librería de la lista
+    for lib_filename in libs_to_load:
+        loaded = False
+        # Buscar en los directorios recolectados
+        for s_dir in search_dirs:
+            for root, _, files in os.walk(s_dir):
+                if lib_filename in files:
+                    full_path = os.path.join(root, lib_filename)
+                    try:
+                        ctypes.CDLL(full_path, mode=ctypes.RTLD_GLOBAL)
+                        loaded = True
+                        break
+                    except Exception:
+                        pass
+            if loaded:
+                break
+        
+        # Intentar cargar del sistema si no se encontró en las carpetas locales
+        if not loaded:
+            try:
+                ctypes.CDLL(lib_filename, mode=ctypes.RTLD_GLOBAL)
+            except Exception:
+                pass
+
+# Ejecutar precarga antes de importar o inicializar faster-whisper
+preload_cuda_libraries()
+
+
+import pyaudio
+import vosk
+import json
+import numpy as np
+import logging
+from faster_whisper import WhisperModel
+
+
+import sys
+import time
 from typing import Optional, Dict, Any
 import ctypes
+
+from utils import play_sound
 
 # Hack para suprimir los warnings molestos de ALSA en Linux
 try:
@@ -24,104 +97,45 @@ logging.basicConfig(
 )
 logger = logging.getLogger("AudioListener")
 
-# --- Configuración de Sonidos ---
-if getattr(sys, 'frozen', False):
-    base_path = os.path.dirname(sys.executable)
-else:
-    base_path = os.path.dirname(os.path.abspath(__file__))
+from contextlib import contextmanager
 
-sounds_dir = os.path.join(base_path, "sounds")
+@contextmanager
+def silence_stderr():
+    """Context manager to temporarily redirect C-level stderr to /dev/null."""
+    try:
+        stderr_fd = sys.stderr.fileno()
+    except Exception:
+        stderr_fd = None
 
-def play_sound(filename):
-    """
-    Reproduce un archivo de sonido de forma asíncrona usando comandos del sistema.
-    Funciona tanto en desarrollo como empaquetado con PyInstaller.
-    
-    Args:
-        filename: Nombre del archivo de sonido (ej: "wake.wav")
-    """
-    # 1. Calcular la ruta base absoluta en tiempo de ejecución
-    # PyInstaller crea una carpeta temporal y guarda la ruta en _MEIPASS
-    if getattr(sys, "frozen", False) and hasattr(sys, '_MEIPASS'):
-        # Modo empaquetado: usar la carpeta temporal de PyInstaller
-        base_path = sys._MEIPASS
+    if stderr_fd is not None:
+        old_stderr = os.dup(stderr_fd)
+        try:
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, stderr_fd)
+            os.close(devnull)
+            yield
+        finally:
+            os.dup2(old_stderr, stderr_fd)
+            os.close(old_stderr)
     else:
-        # Modo desarrollo: usar la carpeta del script
-        base_path = os.path.dirname(os.path.abspath(__file__))
+        yield
 
-    # 2. Construir la ruta absoluta real hacia el archivo de sonido
-    sound_path = os.path.join(base_path, "sounds", filename)
 
-    # 3. Verificar que el archivo existe
-    if not os.path.exists(sound_path):
-        logger.warning(f"No se encontró el sonido en: {sound_path}")
-        # Debug: mostrar qué archivos hay en la carpeta sounds
-        sounds_dir = os.path.join(base_path, "sounds")
-        if os.path.exists(sounds_dir):
-            logger.debug(f"Archivos en {sounds_dir}: {os.listdir(sounds_dir)}")
-        else:
-            logger.warning(f"El directorio sounds no existe: {sounds_dir}")
-        return
-
-    # 4. Intentar reproducir con comandos del sistema (asíncrono con Popen)
-    # Usamos Popen para no bloquear la ejecución
-    try:
-        # Intentar con aplay primero (más común en Linux)
-        subprocess.Popen(
-            ["aplay", "-q", sound_path],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True  # Desacoplar del proceso padre
-        )
-        logger.debug(f"Sonido reproducido con aplay: {filename}")
-        return
-    except FileNotFoundError:
-        pass
-    except Exception as e:
-        logger.debug(f"Error con aplay: {e}")
-
-    try:
-        # Intentar con paplay
-        subprocess.Popen(
-            ["paplay", sound_path],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True
-        )
-        logger.debug(f"Sonido reproducido con paplay: {filename}")
-        return
-    except FileNotFoundError:
-        pass
-    except Exception as e:
-        logger.debug(f"Error con paplay: {e}")
-
-    try:
-        # Intentar con ffplay
-        subprocess.Popen(
-            ["ffplay", "-nodisp", "-autoexit", "-hide_banner", "-loglevel", "quiet", sound_path],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True
-        )
-        logger.debug(f"Sonido reproducido con ffplay: {filename}")
-        return
-    except FileNotFoundError:
-        pass
-    except Exception as e:
-        logger.debug(f"Error con ffplay: {e}")
-
-    # 5. Si llegamos aquí, no se pudo reproducir el sonido
-    logger.warning(f"No se pudo reproducir el sonido {filename}. Verifica que aplay, paplay o ffplay estén instalados.")
+class DummyRecognizer:
+    """Clase dummy para mantener compatibilidad con la interfaz de sensibilidad de la GUI."""
+    def __init__(self):
+        self.energy_threshold = 1500
 
 class AudioListener:
     """
     Clase encargada de la gestión de entrada de audio, detección de la palabra de activación
-    y captura de comandos de voz.
+    y captura de comandos de voz de forma local y offline usando Vosk.
     """
 
     def __init__(self, config: Dict[str, Any], state_callback=None):
         """
-        Inicializa el reconocedor de voz inyectando la configuración validada.
+        Inicializa el reconocedor de voz inyectando la configuración validada y cargando
+        el modelo local de Vosk en español.
 
         Args:
             config (Dict[str, Any]): Diccionario de configuración con los campos necesarios.
@@ -138,8 +152,6 @@ class AudioListener:
             if field not in config:
                 raise ValueError(f"Falta el campo obligatorio '{field}' en la configuración del AudioListener.")
 
-        self.recognizer = sr.Recognizer()
-
         # Callback opcional para notificar cambios de estado a la GUI u otros observadores
         self.state_callback = state_callback
 
@@ -149,19 +161,44 @@ class AudioListener:
         self.max_duration: int = config["max_recording_duration"]
         self.silence_threshold: float = config["silence_threshold"]
 
-        # Configuración del motor de reconocimiento
-        self.recognizer.dynamic_energy_threshold = False  # Apagado para respetar el valor manual
-        self.recognizer.pause_threshold = self.silence_threshold
-        
-        # Valor inicial por defecto de la barra (cámbialo por el que prefieras)
-        self.recognizer.energy_threshold = 1500
+        # Inicializar el dummy recognizer para compatibilidad de interfaz con la GUI
+        self.recognizer = DummyRecognizer()
+
+        # Determinar el código corto de idioma (es, en, etc.)
+        lang_code = self.language.split("-")[0]
+
+        logger.info(f"Cargando modelo local de Vosk para el idioma '{lang_code}'...")
+        try:
+            self.model = vosk.Model(lang=lang_code)
+            self.rec = vosk.KaldiRecognizer(self.model, 16000)
+            logger.info("Modelo de Vosk cargado exitosamente.")
+        except Exception as e:
+            logger.critical(f"No se pudo cargar el modelo de Vosk para '{lang_code}': {e}")
+            raise RuntimeError(f"Error al inicializar el modelo de Vosk: {e}")
+
+        # Cargar modelo de Whisper de forma local
+        whisper_model_name = config.get("whisper_model", "tiny")
+        logger.info(f"Cargando modelo local de Whisper ('{whisper_model_name}')...")
+        try:
+            # Intentar usar CUDA si es posible
+            self.whisper = WhisperModel(whisper_model_name, device="cuda", compute_type="float16")
+            logger.info(f"Modelo Whisper '{whisper_model_name}' cargado en GPU (CUDA) con éxito.")
+        except Exception as e:
+            logger.warning(f"No se pudo inicializar Whisper en GPU (CUDA): {e}. Cargando en CPU...")
+            try:
+                self.whisper = WhisperModel(whisper_model_name, device="cpu", compute_type="int8")
+                logger.info(f"Modelo Whisper '{whisper_model_name}' cargado en CPU con éxito.")
+            except Exception as ex:
+                logger.critical(f"Fallo crítico: No se pudo iniciar Whisper en CPU: {ex}")
+                raise RuntimeError(f"Error al inicializar el modelo de Whisper: {ex}")
+
 
     def wait_for_wake_word(self) -> bool:
         """
         Escucha activamente el ambiente esperando detectar la palabra de activación.
         
         Implementa un bucle continuo que captura audio y lo procesa mediante el motor
-        de reconocimiento de Google para identificar el 'wake word' configurado.
+        de reconocimiento de Vosk para identificar el 'wake word' configurado de forma local.
 
         Returns:
             bool: True si la palabra de activación fue detectada exitosamente, 
@@ -171,49 +208,68 @@ class AudioListener:
         if self.state_callback:
             self.state_callback("ESCUCHANDO_WAKE")
 
+        with silence_stderr():
+            p = pyaudio.PyAudio()
+            try:
+                stream = p.open(
+                    format=pyaudio.paInt16,
+                    channels=1,
+                    rate=16000,
+                    input=True,
+                    frames_per_buffer=2000
+                )
+                stream.start_stream()
+            except Exception as e:
+                logger.critical(f"Fallo crítico al abrir el stream de audio: {e}")
+                p.terminate()
+                return False
+
+        # Resetear el reconocedor para limpiar estados previos
+        self.rec.Reset()
+
         try:
-            with sr.Microphone() as source:
-                # Ajustar el nivel de ruido ambiente antes de empezar a escuchar
-                self.recognizer.adjust_for_ambient_noise(source, duration=1)
+            while True:
+                # Leer segmento de audio
+                data = stream.read(2000, exception_on_overflow=False)
+                if len(data) == 0:
+                    continue
                 
-                while True:
-                    try:
-                        # Escuchar un segmento corto de audio
-                        audio = self.recognizer.listen(source, timeout=None, phrase_time_limit=3)
-                        
-                        # Intentar transcribir usando el motor de Google
-                        transcription = self.recognizer.recognize_google(
-                            audio, 
-                            language=self.language
-                        ).lower()
+                # Alimentar el reconocedor local
+                if self.rec.AcceptWaveform(data):
+                    res = json.loads(self.rec.Result())
+                    transcription = res.get("text", "").lower()
+                    if self.wake_word in transcription:
+                        logger.info("¡Detección exitosa! Escuchando comando...")
+                        break
+                else:
+                    partial = json.loads(self.rec.PartialResult())
+                    transcription = partial.get("partial", "").lower()
+                    if self.wake_word in transcription:
+                        logger.info("¡Detección exitosa (resultado parcial)! Escuchando comando...")
+                        break
 
-                        if self.wake_word in transcription:
-                            logger.info("¡Detección exitosa! Escuchando comando...")
-                            play_sound("wake.wav")  # Retroalimentación auditiva
-                            if self.state_callback:
-                                self.state_callback("GRABANDO_COMANDO")
-                            return True
+            # Retroalimentación auditiva
+            play_sound("wake.wav")
+            time.sleep(0.35)  # Pequeño guard-delay para terminar de reproducir el pitido y pronunciar la palabra
+            if self.state_callback:
+                self.state_callback("GRABANDO_COMANDO")
+            return True
 
-                    except sr.UnknownValueError:
-                        # El motor no entendió lo que se habló (común con ruido de fondo)
-                        continue
-                    except sr.RequestError as e:
-                        # Error de conexión o servicio, reintentar de forma silenciosa
-                        logger.debug(f"Error en el servicio de reconocimiento: {e}")
-                        continue
-                    except Exception as e:
-                        logger.error(f"Error inesperado durante la escucha activa: {e}")
-                        continue
 
         except Exception as e:
-            logger.critical(f"Fallo crítico en el sistema de audio: {e}")
+            logger.error(f"Error inesperado durante la escucha activa de la wake word: {e}")
             return False
-    
-    
+        finally:
+            try:
+                stream.stop_stream()
+                stream.close()
+            except Exception:
+                pass
+            p.terminate()
 
     def record_command(self) -> Optional[str]:
         """
-        Graba el comando de voz del usuario y lo transcribe a texto.
+        Graba el comando de voz del usuario localmente usando PyAudio y lo transcribe a texto con Vosk.
 
         Returns:
             Optional[str]: La transcripción del comando si fue exitosa, None en caso contrario.
@@ -222,43 +278,106 @@ class AudioListener:
         if self.state_callback:
             self.state_callback("GRABANDO_COMANDO")
         
-        try:
-            with sr.Microphone() as source:
-                # Escuchar el comando con un tiempo de espera de 5s para inicio de habla
-                audio = self.recognizer.listen(
-                    source, 
-                    timeout=5, 
-                    phrase_time_limit=self.max_duration
+        with silence_stderr():
+            p = pyaudio.PyAudio()
+            try:
+                stream = p.open(
+                    format=pyaudio.paInt16,
+                    channels=1,
+                    rate=16000,
+                    input=True,
+                    frames_per_buffer=1024
                 )
-                
-                # Transcribir el comando usando el motor de Google
-                text = self.recognizer.recognize_google(
-                    audio, 
-                    language=self.language
-                )
-                
-                logger.info(f"Entendí: {text}")
-                if self.state_callback:
-                    self.state_callback("PROCESANDO")
-                return text.lower()
+                stream.start_stream()
+            except Exception as e:
+                logger.error(f"Error al inicializar micrófono para grabar comando: {e}")
+                p.terminate()
+                return None
 
-        except sr.WaitTimeoutError:
-            # El usuario no empezó a hablar dentro de los 5 segundos
-            return None
-        except sr.UnknownValueError:
-            # El audio no pudo ser transcrito
-            logger.warning("No te escuché, intenta de nuevo")
-            return None
-        except sr.RequestError as e:
-            # Error de comunicación con el servicio de Google
-            logger.error(f"Error de red con el servicio de reconocimiento: {e}")
-            return None
+        # Resetear reconocedor
+        self.rec.Reset()
+
+        frames = []
+        has_started_speaking = False
+        silence_time = 0.0
+        start_time = time.time()
+        timeout = 5.0  # Tiempo máximo para comenzar a hablar
+        chunk_duration = 1024 / 16000.0
+
+        try:
+            while True:
+                current_time = time.time()
+                elapsed = current_time - start_time
+
+                # Leer buffer de audio
+                data = stream.read(1024, exception_on_overflow=False)
+                if len(data) == 0:
+                    continue
+
+                frames.append(data)
+
+                # Calcular energía del chunk para control de silencio (castear a float32 para evitar desbordamiento)
+                audio_data = np.frombuffer(data, dtype=np.int16).astype(np.float32)
+                if len(audio_data) > 0:
+                    energy = np.sqrt(np.mean(np.square(audio_data)))
+                else:
+                    energy = 0.0
+
+
+                # Detectar si el usuario empezó a hablar
+                if not has_started_speaking:
+                    if energy > self.recognizer.energy_threshold:
+                        has_started_speaking = True
+                        logger.info("El usuario comenzó a hablar.")
+                    elif elapsed > timeout:
+                        logger.warning("Timeout: El usuario no empezó a hablar.")
+                        return None
+                else:
+                    # Controlar fin de habla si cae por debajo del umbral de energía
+                    if energy <= self.recognizer.energy_threshold:
+                        silence_time += chunk_duration
+                        if silence_time >= self.silence_threshold:
+                            logger.info("Fin de habla detectado por silencio.")
+                            break
+                    else:
+                        silence_time = 0.0
+
+                # Límite máximo de duración total de la frase
+                if elapsed > self.max_duration:
+                    logger.info("Duración máxima de grabación alcanzada.")
+                    break
+
+            if self.state_callback:
+                self.state_callback("PROCESANDO")
+
+            # Procesar el comando completo usando Whisper
+            audio_bytes = b"".join(frames)
+            # Convertir bytes (16-bit PCM) a array float32 normalizado
+            audio_data = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+
+            logger.info("Transcribiendo comando con Whisper...")
+            segments, info = self.whisper.transcribe(audio_data, language="es")
+            text = " ".join([segment.text for segment in segments]).strip()
+
+            if text:
+                logger.info(f"Transcripción exitosa (Whisper): '{text}'")
+                return text.lower()
+            else:
+                logger.warning("No se entendió nada en el comando de voz.")
+                return None
+
+
         except Exception as e:
-            # Captura de cualquier otro error inesperado
             logger.error(f"Error inesperado al grabar comando: {e}")
             return None
+        finally:
+            try:
+                stream.stop_stream()
+                stream.close()
+            except Exception:
+                pass
+            p.terminate()
 
     def update_sensitivity(self, value):
         """Permite ajustar la sensibilidad dinámicamente desde la GUI."""
-        # Convertimos el valor del slider (0-100) a algo útil para el recognizer (100-4000)
         self.recognizer.energy_threshold = int(value)

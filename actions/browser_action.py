@@ -55,6 +55,19 @@ class BrowserActionModule(ActionModule):
 
         plataforma = plataforma.lower()
 
+        # Mapeo defensivo para robustez acústica y del LLM
+        plataforma_mapping = {
+            "kik": "kick",
+            "kic": "kick",
+            "twich": "twitch",
+            "yt": "youtube",
+            "yt live": "youtube_live",
+            "youtube live": "youtube_live"
+        }
+        if plataforma in plataforma_mapping:
+            plataforma = plataforma_mapping[plataforma]
+            entities["plataforma"] = plataforma
+
         if plataforma not in self.PLATFORM_URLS:
             logger.warning(f"Plataforma no reconocida: '{plataforma}'")
             return False
@@ -88,7 +101,22 @@ class BrowserActionModule(ActionModule):
         if not template:
             return None
 
-        creador = entities.get("creador", "")
+        creador = entities.get("creador", "").lower().strip()
+        
+        # Mapeo de nombres de creadores a sus identificadores oficiales en plataformas
+        creador_mapping = {
+            "la cobra": "lacobraaa",
+            "cobra": "lacobraaa",
+            "davo": "davooxeneize",
+            "davo xeneize": "davooxeneize",
+            "davooxeneize": "davooxeneize",
+        }
+        if creador in creador_mapping:
+            creador = creador_mapping[creador]
+        else:
+            # En caso de que no esté mapeado, removemos los espacios para tener un formato de username válido
+            creador = creador.replace(" ", "")
+
         # quote() codifica el texto para URL; safe='' asegura que '/' también se codifique
         busqueda = quote(entities.get("busqueda", ""), safe="")
 

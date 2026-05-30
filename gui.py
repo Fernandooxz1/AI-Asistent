@@ -14,19 +14,19 @@ import customtkinter as ctk
 from PIL import Image, ImageDraw
 import pystray
 
-from main import KiroAssistant
+from main import ViernesAssistant
 
 # ─── Configuración Global ─────────────────────────────────────────────────────
 SINGLETON_PORT = 65432
 logger = logging.getLogger("ViernesGUI")
 
 # ─── Paleta de colores ────────────────────────────────────────────────────────
-_BG        = "#0f0f0f"
-_PANEL     = "#1a1a1a"
-_ACCENT    = "#e29127"   # naranja
-_TEXT_DIM  = "#6b7280"
-_LISTENING = "#e29127"
-_COMMAND   = "#23a9f2"
+_BG        = "#3e3d3d"
+_PANEL     = "#656565"
+_ACCENT    = "#30a1de"  
+_TEXT_DIM  = "#d7d7d7"
+_LISTENING = "#30a1de"
+_COMMAND   = "#30a1de"
 _ERROR     = "#f87171"
 _IDLE      = "#6b7280"
 
@@ -72,7 +72,7 @@ class ViernesGUI(ctk.CTk):
         # ── Inicializar el asistente ──────────────────────────────────────
         self._stop_event = threading.Event()
         try:
-            self.assistant = KiroAssistant(state_callback=self.update_status_ui)
+            self.assistant = ViernesAssistant(state_callback=self.update_status_ui)
         except (ValueError, FileNotFoundError) as e:
             self._show_fatal_error(str(e))
             return
@@ -196,7 +196,7 @@ class ViernesGUI(ctk.CTk):
             to=4000,
             number_of_steps=390,
             button_color=_ACCENT,
-            button_hover_color="#e8be7a",
+            button_hover_color="#7ac0e8",
             progress_color=_ACCENT,
             fg_color="#2a2a2a",
             command=self._on_slider_change,
@@ -234,9 +234,9 @@ class ViernesGUI(ctk.CTk):
     def update_status_ui(self, estado: str) -> None:
         """Actualiza el indicador de estado de la GUI de forma thread-safe."""
         STATE_MAP = {
-            "ESCUCHANDO_WAKE":  ("● Waiting for 'Jarvis'...",  _LISTENING),
-            "GRABANDO_COMANDO": ("● Listening...",  "#22d3ee"),
-            "PROCESANDO":       ("● Let me think...",             "#fb923c"),
+            "ESCUCHANDO_WAKE":  ("● Esperando comando 'Viernes'...",  _LISTENING),
+            "GRABANDO_COMANDO": ("● Escuchando...",  "#22d3ee"),
+            "PROCESANDO":       ("● Pensando...",             "#e2d73c"),
         }
         text, color = STATE_MAP.get(estado, (f"● {estado}", _TEXT_DIM))
         self.after(0, lambda t=text, c=color: self._status_dot.configure(text=t, text_color=c))
@@ -262,7 +262,7 @@ class ViernesGUI(ctk.CTk):
     # ─── System Tray ───────────────────────────────────────────────────────────
 
     def _make_tray_image(self) -> Image.Image:
-        return Image.new("RGB", (64, 64), color="#deff9a")
+        return Image.new("RGB", (64, 64), color="#5d93ea")
 
     def _create_tray_icon(self) -> pystray.Icon:
         menu = pystray.Menu(
@@ -293,6 +293,8 @@ class ViernesGUI(ctk.CTk):
 
 # ─── Entry point ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
+    import multiprocessing
+    multiprocessing.freeze_support()
     check_singleton()  # 1. Verificar si ya existe una instancia
     app = ViernesGUI()    # 2. Si no existe, arrancar normal
     app.mainloop()

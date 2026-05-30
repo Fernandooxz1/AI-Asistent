@@ -3,7 +3,7 @@ import subprocess
 import logging
 import unicodedata
 
-logger = logging.getLogger("Kiro")
+logger = logging.getLogger("Viernes")
 
 class KeyboardAutomationModule:
     """
@@ -22,20 +22,25 @@ class KeyboardAutomationModule:
 
     def execute(self, entities: dict) -> bool:
         comando_voz_crudo = entities.get("_raw_text", "")
-        comando_voz = self._limpiar_texto(comando_voz_crudo)
         
         macro_actions = None
         
-        # ── EL TRUCO: Ordenamos las macros de más largas a más cortas ──
-        # Así "pausa la musica" se evalúa ANTES que "pausa".
-        macros_ordenadas = sorted(self.macros_db.items(), key=lambda item: len(item[0]), reverse=True)
-
-        for key, actions in macros_ordenadas:
-            key_limpia = self._limpiar_texto(key)
-            if key_limpia in comando_voz:
-                macro_actions = actions
-                logger.info(f"🎯 Macro detectada para: '{key}'")
-                break
+        # 1. Intentar resolver por entidad "macro" (extraída por la IA o Cortocircuito)
+        macro_entidad = entities.get("macro")
+        if macro_entidad and macro_entidad in self.macros_db:
+            macro_actions = self.macros_db[macro_entidad]
+            logger.info(f"🎯 Macro detectada por entidad: '{macro_entidad}'")
+        
+        # 2. Fallback: búsqueda difusa de subcadena tradicional si la entidad falló
+        if not macro_actions:
+            comando_voz = self._limpiar_texto(comando_voz_crudo)
+            macros_ordenadas = sorted(self.macros_db.items(), key=lambda item: len(item[0]), reverse=True)
+            for key, actions in macros_ordenadas:
+                key_limpia = self._limpiar_texto(key)
+                if key_limpia in comando_voz:
+                    macro_actions = actions
+                    logger.info(f"🎯 Macro detectada por subcadena: '{key}'")
+                    break
 
         if not macro_actions:
             logger.warning(f"No se encontró ninguna macro de teclado para la frase: '{comando_voz_crudo}'")

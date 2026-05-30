@@ -1,101 +1,13 @@
 import importlib
 import os
 import sys
-import subprocess
 import logging
 from typing import Dict, Any, Type
 
+from utils import play_sound
+
 # Configuración del logger para el módulo Dispatcher
 logger = logging.getLogger(__name__)
-
-# --- Configuración de Sonidos ---
-if getattr(sys, 'frozen', False):
-    base_path = os.path.dirname(sys.executable)
-else:
-    base_path = os.path.dirname(os.path.abspath(__file__))
-
-sounds_dir = os.path.join(base_path, "sounds")
-
-def play_sound(filename):
-    """
-    Reproduce un archivo de sonido de forma asíncrona usando comandos del sistema.
-    Funciona tanto en desarrollo como empaquetado con PyInstaller.
-    
-    Args:
-        filename: Nombre del archivo de sonido (ej: "success.wav")
-    """
-    # 1. Calcular la ruta base absoluta en tiempo de ejecución
-    # PyInstaller crea una carpeta temporal y guarda la ruta en _MEIPASS
-    if getattr(sys, "frozen", False) and hasattr(sys, '_MEIPASS'):
-        # Modo empaquetado: usar la carpeta temporal de PyInstaller
-        base_path = sys._MEIPASS
-    else:
-        # Modo desarrollo: usar la carpeta del script
-        base_path = os.path.dirname(os.path.abspath(__file__))
-
-    # 2. Construir la ruta absoluta real hacia el archivo de sonido
-    sound_path = os.path.join(base_path, "sounds", filename)
-
-    # 3. Verificar que el archivo existe
-    if not os.path.exists(sound_path):
-        logger.warning(f"No se encontró el sonido en: {sound_path}")
-        # Debug: mostrar qué archivos hay en la carpeta sounds
-        sounds_dir = os.path.join(base_path, "sounds")
-        if os.path.exists(sounds_dir):
-            logger.debug(f"Archivos en {sounds_dir}: {os.listdir(sounds_dir)}")
-        else:
-            logger.warning(f"El directorio sounds no existe: {sounds_dir}")
-        return
-
-    # 4. Intentar reproducir con comandos del sistema (asíncrono con Popen)
-    # Usamos Popen para no bloquear la ejecución
-    try:
-        # Intentar con aplay primero (más común en Linux)
-        subprocess.Popen(
-            ["aplay", "-q", sound_path],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True  # Desacoplar del proceso padre
-        )
-        logger.debug(f"Sonido reproducido con aplay: {filename}")
-        return
-    except FileNotFoundError:
-        pass
-    except Exception as e:
-        logger.debug(f"Error con aplay: {e}")
-
-    try:
-        # Intentar con paplay
-        subprocess.Popen(
-            ["paplay", sound_path],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True
-        )
-        logger.debug(f"Sonido reproducido con paplay: {filename}")
-        return
-    except FileNotFoundError:
-        pass
-    except Exception as e:
-        logger.debug(f"Error con paplay: {e}")
-
-    try:
-        # Intentar con ffplay
-        subprocess.Popen(
-            ["ffplay", "-nodisp", "-autoexit", "-hide_banner", "-loglevel", "quiet", sound_path],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True
-        )
-        logger.debug(f"Sonido reproducido con ffplay: {filename}")
-        return
-    except FileNotFoundError:
-        pass
-    except Exception as e:
-        logger.debug(f"Error con ffplay: {e}")
-
-    # 5. Si llegamos aquí, no se pudo reproducir el sonido
-    logger.warning(f"No se pudo reproducir el sonido {filename}. Verifica que aplay, paplay o ffplay estén instalados.")
 
 class Dispatcher:
     """
@@ -147,6 +59,7 @@ class Dispatcher:
                 from actions.youtube_play_action import YoutubePlayActionModule
                 from actions.game_launcher_action import GameLauncherModule
                 from actions.keyboard_automation_action import KeyboardAutomationModule
+                from actions.conversational_action import ConversationalModule
                 
                 # Llenamos el diccionario interno manualmente con las clases importadas
                 self.modules["SystemActionModule"] = SystemActionModule
@@ -154,6 +67,7 @@ class Dispatcher:
                 self.modules["YoutubePlayActionModule"] = YoutubePlayActionModule
                 self.modules["GameLauncherModule"] = GameLauncherModule
                 self.modules["KeyboardAutomationModule"] = KeyboardAutomationModule
+                self.modules["ConversationalModule"] = ConversationalModule
                 logger.info("[Dispatcher] Módulos cargados estáticamente en modo frozen con éxito.")
                 return
             except ImportError as e:
