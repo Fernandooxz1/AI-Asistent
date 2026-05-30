@@ -169,6 +169,7 @@ class IntentParser:
         2. Está terminantemente prohibido contestar con texto libre, explicaciones o bloques de markdown fuera del objeto JSON.
         3. Si el usuario pide múltiples acciones en la misma frase (unidas por 'y', 'luego', 'después', etc.), debes separarlas en objetos de acción independientes dentro del array "intents". Nunca mezcles entidades de intenciones distintas en un mismo objeto.
         4. Usa EXCLUSIVAMENTE las claves de entidades listadas arriba. NO inventes nuevas claves.
+        5. NO separes un comando en múltiples intenciones si es una única orden continua. Por ejemplo, "buscar en google la página de anime datos" o "abrir en google brave la página de anime datos" es una única orden que debe mapearse a "abrir_navegador" con plataforma "google" y busqueda "pagina de anime datos" (e ignorando el programa "brave" si se usa para abrir la búsqueda).
 
         FORMATO JSON REQUERIDO (SIEMPRE SIGUE ESTA ESTRUCTURA):
         {{
@@ -243,6 +244,34 @@ class IntentParser:
                     "intent": "abrir_aplicacion",
                     "entities": {{
                         "programa": "alacritty"
+                    }}
+                }}
+            ]
+        }}
+
+        EJEMPLO 5 (Abrir Navegador / Búsqueda o Sitio Web):
+        Pregunta: "busca en google la pagina animedatos" ->
+        {{
+            "intents": [
+                {{
+                    "intent": "abrir_navegador",
+                    "entities": {{
+                        "plataforma": "google",
+                        "busqueda": "pagina animedatos"
+                    }}
+                }}
+            ]
+        }}
+
+        EJEMPLO 6 (Abrir Navegador / Streamer o Sitio web):
+        Pregunta: "entrar a kick de davo" ->
+        {{
+            "intents": [
+                {{
+                    "intent": "abrir_navegador",
+                    "entities": {{
+                        "plataforma": "kick",
+                        "creador": "davo"
                     }}
                 }}
             ]

@@ -4,6 +4,7 @@ import json
 import logging
 import time
 import subprocess
+import threading
 from typing import Optional
 from dotenv import load_dotenv
 
@@ -82,9 +83,16 @@ class ViernesAssistant:
         logger.info(f"Configuración cargada desde '{config_path}'")
 
         # 3. Instanciar subsistemas
-        self.listener   = AudioListener(config, state_callback=state_callback)
+        self.callbacks = []
+        if state_callback:
+            self.callbacks.append(state_callback)
+
+        self.listener   = AudioListener(config, state_callback=self.notify_state)
         self.parser     = IntentParser(config=config)
         self.dispatcher = Dispatcher(config=config)
+
+        # Iniciar servidor web de control remoto
+        self._start_web_server()
 
         # 4. Verificar e iniciar Ollama de forma automática si no está corriendo
         self.ollama_process = None
@@ -122,6 +130,31 @@ class ViernesAssistant:
                 return True
         except (socket.error, ConnectionRefusedError):
             return False
+
+    def notify_state(self, state: str) -> None:
+        """Notifica el cambio de estado a todos los callbacks registrados."""
+        if hasattr(self, "listener"):
+            self.listener.current_state = state
+        for cb in self.callbacks:
+            try:
+                cb(state)
+            except Exception as e:
+                logger.error(f"Error en callback de estado remoto: {e}")
+
+    def _start_web_server(self) -> None:
+        """Inicia el servidor FastAPI en un hilo separado para control remoto LAN."""
+        try:
+            import web_server
+            web_thread = threading.Thread(
+                target=web_server.run_server,
+                args=(self,),
+                daemon=True,
+                name="ViernesWebServer"
+            )
+            web_thread.start()
+            logger.info("Servidor web de control remoto (FastAPI/WebSockets) iniciado exitosamente.")
+        except Exception as e:
+            logger.error(f"Error al iniciar servidor web de control remoto: {e}")
 
     def run(self, stop_event: Optional["threading.Event"] = None) -> None:
 

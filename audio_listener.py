@@ -154,6 +154,10 @@ class AudioListener:
 
         # Callback opcional para notificar cambios de estado a la GUI u otros observadores
         self.state_callback = state_callback
+        self.is_paused = False
+        import queue
+        self.remote_audio_queue = queue.Queue()
+        self.current_state = "IDLE"
 
         # Asignación de propiedades desde la configuración
         self.wake_word: str = config["wake_word"].lower()
@@ -192,6 +196,16 @@ class AudioListener:
                 logger.critical(f"Fallo crítico: No se pudo iniciar Whisper en CPU: {ex}")
                 raise RuntimeError(f"Error al inicializar el modelo de Whisper: {ex}")
 
+    def _notify_state(self, state: str) -> None:
+        """Helper para actualizar estado local y propagar el callback."""
+        self.current_state = state
+        if self.state_callback:
+            try:
+                self.state_callback(state)
+            except Exception as e:
+                logger.error(f"Error en callback de estado: {e}")
+
+
 
     def wait_for_wake_word(self) -> bool:
         """
@@ -205,8 +219,7 @@ class AudioListener:
             False si ocurre un error crítico del sistema.
         """
         logger.info(f"Esperando palabra de activación: '{self.wake_word}'...")
-        if self.state_callback:
-            self.state_callback("ESCUCHANDO_WAKE")
+        self._notify_state("ESCUCHANDO_WAKE")
 
         with silence_stderr():
             p = pyaudio.PyAudio()
@@ -227,10 +240,18 @@ class AudioListener:
         # Resetear el reconocedor para limpiar estados previos
         self.rec.Reset()
 
+        import queue
         try:
             while True:
-                # Leer segmento de audio
-                data = stream.read(2000, exception_on_overflow=False)
+                # Si el micrófono local está en pausa por control remoto (Web)
+                if self.is_paused:
+                    try:
+                        data = self.remote_audio_queue.get(timeout=0.1)
+                    except queue.Empty:
+                        continue
+                else:
+                    # Leer segmento de audio
+                    data = stream.read(2000, exception_on_overflow=False)
                 if len(data) == 0:
                     continue
                 
@@ -249,10 +270,19 @@ class AudioListener:
                         break
 
             # Retroalimentación auditiva
-            play_sound("wake.wav")
+            if self.is_paused:
+                self._notify_state("GRABANDO_COMANDO")
+                logger.info("[Modo Móvil] Wake word detectada. Bloqueando hasta que el móvil procese el comando...")
+                time.sleep(0.5)
+                while self.current_state in ["GRABANDO_COMANDO", "PROCESANDO"]:
+                    time.sleep(0.1)
+                logger.info("[Modo Móvil] Procesamiento remoto finalizado. Reanudando ciclo.")
+                return True
+
+            if not self.is_paused:
+                play_sound("wake.wav")
             time.sleep(0.35)  # Pequeño guard-delay para terminar de reproducir el pitido y pronunciar la palabra
-            if self.state_callback:
-                self.state_callback("GRABANDO_COMANDO")
+            self._notify_state("GRABANDO_COMANDO")
             return True
 
 
@@ -274,9 +304,12 @@ class AudioListener:
         Returns:
             Optional[str]: La transcripción del comando si fue exitosa, None en caso contrario.
         """
+        if self.is_paused:
+            logger.info("Grabación local omitida porque el micrófono remoto (móvil) está activo.")
+            return None
+
         logger.info("Escuchando comando...")
-        if self.state_callback:
-            self.state_callback("GRABANDO_COMANDO")
+        self._notify_state("GRABANDO_COMANDO")
         
         with silence_stderr():
             p = pyaudio.PyAudio()
@@ -306,6 +339,10 @@ class AudioListener:
 
         try:
             while True:
+                if self.is_paused:
+                    logger.warning("Grabación local abortada porque se inició grabación remota.")
+                    return None
+
                 current_time = time.time()
                 elapsed = current_time - start_time
 
@@ -347,8 +384,7 @@ class AudioListener:
                     logger.info("Duración máxima de grabación alcanzada.")
                     break
 
-            if self.state_callback:
-                self.state_callback("PROCESANDO")
+            self._notify_state("PROCESANDO")
 
             # Procesar el comando completo usando Whisper
             audio_bytes = b"".join(frames)

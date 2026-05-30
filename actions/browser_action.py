@@ -69,12 +69,35 @@ class BrowserActionModule(ActionModule):
             entities["plataforma"] = plataforma
 
         if plataforma not in self.PLATFORM_URLS:
-            logger.warning(f"Plataforma no reconocida: '{plataforma}'")
-            return False
+            # Fallback inteligente: si no se reconoce la plataforma (ej: animedato), realizamos una búsqueda en Google
+            logger.info(f"Plataforma '{plataforma}' no reconocida. Redirigiendo a búsqueda en Google...")
+            exist_search = entities.get("busqueda", "")
+            if exist_search:
+                entities["busqueda"] = f"{plataforma} {exist_search}"
+            else:
+                entities["busqueda"] = plataforma
+            entities["plataforma"] = "google"
+            plataforma = "google"
 
         if plataforma in self._CREATOR_PLATFORMS and not entities.get("creador"):
             logger.warning(f"La plataforma '{plataforma}' requiere la entidad 'creador'.")
             return False
+
+        if plataforma in self._SEARCH_PLATFORMS and not entities.get("busqueda"):
+            # Si no hay búsqueda pero hay creador, usar el creador como búsqueda
+            creador = entities.get("creador")
+            if creador:
+                entities["busqueda"] = creador
+                logger.info(f"Usando creador '{creador}' como búsqueda de respaldo para la plataforma '{plataforma}'")
+            else:
+                raw_text = entities.get("_raw_text", "").strip()
+                if raw_text:
+                    import re
+                    pattern = rf"\b{plataforma}\b\s*(?:brave|chrome|firefox|safari|navegador)?\s*(?:la\s+pagina\s+de|la\s+página\s+de|la\s+pagina|la\s+página|el\s+canal\s+de|el\s+video\s+de|de|para|a|en)?\s*(.*)"
+                    match = re.search(pattern, raw_text, re.IGNORECASE)
+                    if match and match.group(1).strip():
+                        entities["busqueda"] = match.group(1).strip()
+                        logger.info(f"Búsqueda extraída de _raw_text: '{entities['busqueda']}'")
 
         if plataforma in self._SEARCH_PLATFORMS and not entities.get("busqueda"):
             logger.warning(f"La plataforma '{plataforma}' requiere la entidad 'busqueda'.")

@@ -128,7 +128,8 @@ class Dispatcher:
         if action_class:
             try:
                 logger.info(f"Despachando intent '{intent}' a la clase '{class_name}'")
-                play_sound("success.wav")  # Retroalimentación auditiva
+                if not getattr(self, "suppress_beep", False):
+                    play_sound("success.wav")  # Retroalimentación auditiva
                 instance = action_class(config=self.config)
                 instance.execute(entities)
             except Exception as e:

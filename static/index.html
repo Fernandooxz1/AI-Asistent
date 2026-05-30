@@ -1,0 +1,2247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Viernes Web Remote Control</title>
+  <!-- Outfit Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=SF+Pro+Display&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Premium iOS UI Variables */
+    :root {
+      --bg-dark: #05070c;
+      --bg-card: rgba(24, 28, 41, 0.45);
+      --bg-card-hover: rgba(24, 28, 41, 0.6);
+      --bg-island: #000000;
+      
+      --accent-blue: #0A84FF;
+      --accent-blue-rgb: 10, 132, 255;
+      --accent-red: #FF453A;
+      --accent-red-rgb: 255, 69, 58;
+      --accent-purple: #BF5AF2;
+      --accent-purple-rgb: 191, 90, 242;
+      --accent-green: #30D158;
+      --accent-orange: #FF9F0A;
+      
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.65);
+      --text-tertiary: rgba(255, 255, 255, 0.4);
+      --border-light: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(255, 255, 255, 0.15);
+      
+      --glass-blur: blur(25px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      position: fixed;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(10, 132, 255, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(191, 90, 242, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.8) 0%, var(--bg-dark) 100%);
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text-primary);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      transition: background-color 0.8s ease;
+    }
+
+    /* Ambient Background Glow elements */
+    .bg-glow-1 {
+      position: absolute;
+      top: 15%;
+      left: 20%;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+      filter: blur(40px);
+      pointer-events: none;
+      z-index: -1;
+      animation: float-slow 20s infinite alternate ease-in-out;
+    }
+
+    .bg-glow-2 {
+      position: absolute;
+      bottom: 20%;
+      right: 15%;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(191, 90, 242, 0.08) 0%, transparent 70%);
+      filter: blur(50px);
+      pointer-events: none;
+      z-index: -1;
+      animation: float-slow 25s infinite alternate-reverse ease-in-out;
+    }
+
+    @keyframes float-slow {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(40px, 30px) scale(1.1); }
+    }
+
+    /* Cinema Mode Global Overrides */
+    body.cinema-active {
+      background-color: #010204 !important;
+      background-image: none !important;
+    }
+    body.cinema-active .device-frame {
+      box-shadow: 
+        0px 0px 0px 4px #0c0c0e,
+        0px 0px 0px 12px #151517,
+        0 30px 70px rgba(0, 0, 0, 0.9),
+        0 0 100px rgba(255, 159, 10, 0.07);
+      border-color: rgba(255, 159, 10, 0.15);
+    }
+    body.cinema-active::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* Clean Page/Content Wrapper (No physical phone borders inside the screen) */
+    .device-frame {
+      position: relative;
+      width: 100%;
+      max-width: 480px; /* Centered layout on desktop, full-width on mobile */
+      height: 100%;
+      background: #090c13;
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+      overflow: hidden;
+      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Ocultar barra de estado simulada e isla flotante */
+    .ios-status-bar {
+      display: none !important;
+    }
+    .dynamic-island-container {
+      display: none !important;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 500px) {
+      body {
+        background: var(--bg-dark);
+        overflow: hidden !important;
+        height: 100% !important;
+      }
+      .device-frame {
+        max-width: 100vw;
+        height: 100% !important;
+        overflow: hidden !important;
+      }
+      .bg-glow-1, .bg-glow-2 {
+        display: none;
+      }
+    }
+
+    /* Glassmorphism Panel styles */
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border-light);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .glass-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    /* iOS Status Bar */
+    .ios-status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 32px 4px 32px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      user-select: none;
+      z-index: 100;
+      background: transparent;
+    }
+    
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    
+    .battery {
+      width: 23px;
+      height: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 3px;
+      padding: 1px;
+      position: relative;
+    }
+    
+    .battery-level {
+      width: 82%;
+      height: 100%;
+      background-color: #fff;
+      border-radius: 1.5px;
+      transition: width 0.5s ease;
+    }
+    
+    .battery::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 3px;
+      width: 1.5px;
+      height: 4px;
+      background-color: rgba(255, 255, 255, 0.55);
+      border-radius: 0 1px 1px 0;
+    }
+
+    /* iOS Dynamic Island */
+    .dynamic-island-container {
+      position: absolute;
+      top: 11px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .dynamic-island {
+      width: 110px;
+      height: 30px;
+      background: var(--bg-island);
+      border-radius: 20px;
+      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      color: #fff;
+      font-size: 11px;
+      overflow: hidden;
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      pointer-events: auto;
+    }
+
+    /* Island states */
+    .dynamic-island.state-idle {
+      width: 110px;
+      height: 30px;
+    }
+    .dynamic-island.state-listening {
+      width: 200px;
+      height: 38px;
+      border-radius: 22px;
+      border-color: rgba(var(--accent-blue-rgb), 0.3);
+    }
+    .dynamic-island.state-recording {
+      width: 220px;
+      height: 38px;
+      border-radius: 22px;
+      border-color: rgba(var(--accent-red-rgb), 0.3);
+    }
+    .dynamic-island.state-processing {
+      width: 175px;
+      height: 38px;
+      border-radius: 22px;
+      border-color: rgba(var(--accent-purple-rgb), 0.3);
+    }
+
+    /* Island Content Layouts */
+    .island-content {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      justify-content: space-between;
+      opacity: 0;
+      transform: scale(0.9);
+      transition: all 0.3s ease;
+      display: none;
+    }
+
+    .island-content.active {
+      display: flex;
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .island-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    .island-indicator-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .state-listening .island-indicator-dot {
+      background-color: var(--accent-blue);
+      box-shadow: 0 0 8px var(--accent-blue);
+      animation: led-blink 1.5s infinite;
+    }
+    .state-recording .island-indicator-dot {
+      background-color: var(--accent-red);
+      box-shadow: 0 0 8px var(--accent-red);
+      animation: led-blink 0.8s infinite;
+    }
+
+    /* Dynamic Island Waveform indicator */
+    .island-mini-wave {
+      display: flex;
+      align-items: center;
+      gap: 2.5px;
+      height: 12px;
+    }
+    .island-mini-wave span {
+      width: 2px;
+      height: 100%;
+      border-radius: 1px;
+      transition: background-color 0.3s;
+    }
+    .state-listening .island-mini-wave span {
+      background-color: var(--accent-blue);
+      animation: mini-bounce 0.8s ease-in-out infinite alternate;
+    }
+    .state-recording .island-mini-wave span {
+      background-color: var(--accent-red);
+      animation: mini-bounce 0.5s ease-in-out infinite alternate;
+    }
+    .island-mini-wave span:nth-child(2) { animation-delay: 0.15s; }
+    .island-mini-wave span:nth-child(3) { animation-delay: 0.3s; }
+    .island-mini-wave span:nth-child(4) { animation-delay: 0.45s; }
+
+    /* Processing micro-spinner */
+    .island-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(191, 90, 242, 0.2);
+      border-top-color: var(--accent-purple);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes led-blink {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+    @keyframes mini-bounce {
+      0% { transform: scaleY(0.2); }
+      100% { transform: scaleY(1); }
+    }
+
+    /* Main Scrollable Content Area */
+    .device-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 16px 40px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 10px;
+      scrollbar-width: none;
+    }
+    .device-content::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Top branding panel */
+    .branding-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px;
+    }
+    .branding-title h1 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 60%, rgba(255,255,255,0.6));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .branding-title p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    
+    .header-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-light);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .header-btn:active {
+      transform: scale(0.92);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* State Segmented Control (iOS style) */
+    .segmented-control {
+      position: relative;
+      display: flex;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 3px;
+      border: 0.5px solid rgba(255, 255, 255, 0.05);
+      margin-bottom: 2px;
+    }
+    .segment-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 0;
+      cursor: pointer;
+      z-index: 2;
+      transition: color 0.3s;
+      outline: none;
+    }
+    .segment-btn.active {
+      color: #fff;
+    }
+    .segment-indicator {
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      left: 3px;
+      width: calc(25% - 3px);
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(10px);
+      border-radius: 9px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      z-index: 1;
+      transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Listening Panel Card */
+    .listening-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow: visible; /* Permitir que los anillos de brillo sobresalgan de la tarjeta */
+    }
+
+    /* Status Pill and LED inside main panel */
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      transition: all 0.3s ease;
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--text-tertiary);
+      transition: all 0.3s ease;
+    }
+    
+    /* Dynamic Badge states based on main status */
+    .state-idle .status-badge { color: var(--text-secondary); }
+    .state-idle .status-dot { background-color: var(--text-secondary); }
+    
+    .state-listening .status-badge { background: rgba(10, 132, 255, 0.1); border-color: rgba(10, 132, 255, 0.2); color: var(--accent-blue); }
+    .state-listening .status-dot { background-color: var(--accent-blue); box-shadow: 0 0 10px var(--accent-blue); }
+    
+    .state-recording .status-badge { background: rgba(255, 69, 58, 0.1); border-color: rgba(255, 69, 58, 0.2); color: var(--accent-red); }
+    .state-recording .status-dot { background-color: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); animation: led-blink 1s infinite; }
+    
+    .state-processing .status-badge { background: rgba(191, 90, 242, 0.1); border-color: rgba(191, 90, 242, 0.2); color: var(--accent-purple); }
+    .state-processing .status-dot { background-color: var(--accent-purple); box-shadow: 0 0 10px var(--accent-purple); }
+
+    /* Beautiful, Realistic Mic Button */
+    .mic-btn-wrapper {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 25px 0 25px 0;
+      min-height: 140px; /* Asegurar espacio suficiente para los anillos de animación */
+    }
+
+    .mic-outer-ring {
+      position: absolute;
+      width: 124px;
+      height: 124px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+      transition: all 0.5s ease;
+    }
+
+    .state-listening .mic-outer-ring {
+      animation: pulse-ring-blue 2s infinite cubic-bezier(0.215, 0.610, 0.355, 1);
+      border-color: rgba(10, 132, 255, 0.25);
+    }
+    .state-recording .mic-outer-ring {
+      animation: pulse-ring-red 1.3s infinite cubic-bezier(0.215, 0.610, 0.355, 1);
+      border-color: rgba(255, 69, 58, 0.25);
+    }
+    .state-processing .mic-outer-ring {
+      border: 2px dashed rgba(191, 90, 242, 0.4);
+      animation: spin 3s linear infinite;
+    }
+
+    @keyframes pulse-ring-blue {
+      0% { transform: scale(0.9); opacity: 1; box-shadow: 0 0 0 0 rgba(10, 132, 255, 0.4); }
+      70% { transform: scale(1.22); opacity: 0; box-shadow: 0 0 0 20px rgba(10, 132, 255, 0); }
+      100% { transform: scale(0.9); opacity: 0; }
+    }
+    @keyframes pulse-ring-red {
+      0% { transform: scale(0.9); opacity: 1; box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.5); }
+      70% { transform: scale(1.28); opacity: 0; box-shadow: 0 0 0 25px rgba(255, 69, 58, 0); }
+      100% { transform: scale(0.9); opacity: 0; }
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .mic-button {
+      position: relative;
+      width: 104px;
+      height: 104px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 
+        inset 0 2px 3px rgba(255, 255, 255, 0.1),
+        0 12px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .mic-button::before {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(24, 28, 41, 0.6) 0%, rgba(10, 12, 18, 0.8) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      z-index: -1;
+      transition: all 0.3s;
+    }
+
+    .mic-button:hover {
+      transform: translateY(-2px) scale(1.02);
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 
+        inset 0 2px 3px rgba(255, 255, 255, 0.15),
+        0 15px 30px rgba(0, 0, 0, 0.45);
+    }
+    
+    .mic-button:active {
+      transform: translateY(1px) scale(0.96);
+      box-shadow: 
+        inset 0 1px 2px rgba(0, 0, 0, 0.6),
+        0 4px 10px rgba(0, 0, 0, 0.25);
+    }
+
+    .mic-icon-svg {
+      width: 38px;
+      height: 38px;
+      color: rgba(255, 255, 255, 0.9);
+      transition: all 0.4s ease;
+    }
+
+    /* Glow modifications for states */
+    .state-listening .mic-button {
+      border-color: rgba(10, 132, 255, 0.6);
+      box-shadow: 
+        0 0 30px rgba(10, 132, 255, 0.25),
+        inset 0 2px 5px rgba(255, 255, 255, 0.15);
+    }
+    .state-listening .mic-icon-svg {
+      color: var(--accent-blue);
+      filter: drop-shadow(0 0 8px rgba(10, 132, 255, 0.6));
+    }
+
+    .state-recording .mic-button {
+      border-color: rgba(255, 69, 58, 0.6);
+      box-shadow: 
+        0 0 35px rgba(255, 69, 58, 0.3),
+        inset 0 2px 5px rgba(255, 255, 255, 0.15);
+    }
+    .state-recording .mic-icon-svg {
+      color: var(--accent-red);
+      filter: drop-shadow(0 0 8px rgba(255, 69, 58, 0.6));
+    }
+
+    .state-processing .mic-button {
+      border-color: rgba(191, 90, 242, 0.6);
+      box-shadow: 
+        0 0 30px rgba(191, 90, 242, 0.25),
+        inset 0 2px 5px rgba(255, 255, 255, 0.15);
+    }
+    .state-processing .mic-icon-svg {
+      color: var(--accent-purple);
+      filter: drop-shadow(0 0 8px rgba(191, 90, 242, 0.6));
+    }
+
+    /* Wake Word Status Tag */
+    .wake-word-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 10px;
+      border-radius: 12px;
+      border: 0.5px solid rgba(255, 255, 255, 0.04);
+      margin-bottom: 5px;
+    }
+    .wake-word-pill svg {
+      width: 12px;
+      height: 12px;
+      color: var(--accent-orange);
+    }
+
+    /* Waveform Visualizer Canvas */
+    .visualizer-container {
+      width: 100%;
+      height: 70px;
+      margin-top: 10px;
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    #waveCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Grid Layout for controls */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 14px;
+    }
+
+    /* Media Automator Panel */
+    .media-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    
+    .media-card-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text-tertiary);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    
+    .media-info {
+      margin-bottom: 12px;
+    }
+    
+    .media-info h2 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .media-info p {
+      font-size: 11px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .media-buttons {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+    }
+    
+    .media-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .media-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .media-btn:active {
+      transform: scale(0.9);
+      background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .media-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    .media-btn.play-btn {
+      width: 46px;
+      height: 46px;
+      background: #fff;
+      color: #000;
+    }
+    .media-btn.play-btn:hover {
+      background: rgba(255,255,255,0.9);
+    }
+    
+    .media-btn.play-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Dynamic Play/Pause state */
+    .media-btn.play-btn .pause-icon {
+      display: none;
+    }
+    .media-btn.play-btn.playing .play-icon {
+      display: none;
+    }
+    .media-btn.play-btn.playing .pause-icon {
+      display: block;
+    }
+
+    /* iOS 18 Control Center Dual Vertical Sliders */
+    .sliders-panel {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px;
+      background: var(--bg-card);
+      border-radius: 24px;
+      border: 1px solid var(--border-light);
+    }
+
+    .cc-slider-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .cc-vertical-slider {
+      position: relative;
+      width: 100%;
+      height: 110px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      overflow: hidden;
+      cursor: ns-resize;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding-bottom: 12px;
+      box-sizing: border-box;
+      touch-action: none;
+      backdrop-filter: blur(10px);
+    }
+
+    .cc-slider-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 70%; /* dynamic */
+      background: rgba(255, 255, 255, 0.18);
+      z-index: 1;
+      transition: height 0.05s linear;
+      pointer-events: none;
+    }
+
+    /* Slider accent colors */
+    #gain-vertical-slider .cc-slider-fill {
+      background: rgba(191, 90, 242, 0.25);
+    }
+    
+    .cc-slider-icon {
+      position: relative;
+      z-index: 2;
+      width: 20px;
+      height: 20px;
+      color: #fff;
+      margin-bottom: 4px;
+      opacity: 0.8;
+      pointer-events: none;
+    }
+    
+    .cc-slider-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .cc-slider-label {
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--text-tertiary);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-top: 6px;
+      text-align: center;
+    }
+
+    .cc-slider-value {
+      position: relative;
+      z-index: 2;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      opacity: 0.9;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    /* Screen & System Operations Panel */
+    .system-ops-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .ops-header {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text-tertiary);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .ops-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .action-button {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      padding: 12px 10px;
+      border-radius: 16px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .action-button:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .action-button:active {
+      transform: scale(0.96);
+    }
+    .action-button.active {
+      background: rgba(255, 159, 10, 0.15);
+      border-color: rgba(255, 159, 10, 0.3);
+      color: var(--accent-orange);
+    }
+    
+    .action-button.fullscreen-active {
+      background: rgba(10, 132, 255, 0.15);
+      border-color: rgba(10, 132, 255, 0.3);
+      color: var(--accent-blue);
+    }
+
+    .action-button svg {
+      width: 15px;
+      height: 15px;
+      stroke-width: 2.5;
+    }
+
+    /* Sensitivity Horizontal Control inside Dashboard */
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    
+    .slider-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .slider-label-left {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .slider-label-left svg {
+      width: 13px;
+      height: 13px;
+      color: var(--text-tertiary);
+    }
+
+    /* Custom native range slider */
+    .ios-range {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+    }
+    
+    .ios-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      border: 0.5px solid rgba(0,0,0,0.1);
+    }
+
+    /* Settings Slide-up Drawer */
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      z-index: 150;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .drawer-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .settings-drawer {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translate(-50%, 100%);
+      width: 100%;
+      max-width: 480px;
+      max-height: 80%;
+      background: rgba(20, 24, 38, 0.94);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border-radius: 30px 30px 0 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      z-index: 160;
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 12px 20px 32px 20px;
+      overflow-y: auto;
+    }
+    .settings-drawer.active {
+      transform: translate(-50%, 0);
+    }
+
+    .drawer-handle {
+      width: 36px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 3px;
+      margin: 0 auto 18px auto;
+      cursor: pointer;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .drawer-header h3 {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .drawer-close {
+      background: none;
+      border: none;
+      color: var(--accent-blue);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .control-row {
+      margin-bottom: 18px;
+    }
+    .control-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .control-label-row span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .helper-text {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      display: block;
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+
+    .value-badge {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    /* iOS selection menu styling */
+    .ios-select {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      color: #fff;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      margin-top: 6px;
+      cursor: pointer;
+    }
+
+    /* Toggle switches rows */
+    .toggle-group {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 18px;
+      border: 1px solid var(--border-light);
+      overflow: hidden;
+      margin-top: 15px;
+    }
+
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .toggle-row:last-child {
+      border-bottom: none;
+    }
+
+    /* iOS Green Switch */
+    .ios-switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 28px;
+    }
+    .ios-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .switch-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(255, 255, 255, 0.16);
+      transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 34px;
+    }
+    .switch-slider:before {
+      position: absolute;
+      content: "";
+      height: 24px;
+      width: 24px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 50%;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    }
+    input:checked + .switch-slider {
+      background-color: var(--accent-green);
+    }
+    input:checked + .switch-slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Ocultar la barra del home indicator de iOS */
+    .home-indicator-container {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Blurred backgrounds for visual depth -->
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Physical Bezel Device Wrapper -->
+  <div class="device-frame">
+    
+    <!-- Elements removed (iOS Status Bar and Dynamic Island) -->
+
+    <!-- Scrollable device container -->
+    <div class="device-content" id="scroll-content">
+      
+      <!-- Top Branding Line -->
+      <div class="branding-row">
+        <div class="branding-title">
+          <h1>Viernes Control</h1>
+          <p>Local Assistant Voice Bridge</p>
+        </div>
+        <!-- Settings Gear button -->
+        <button class="header-btn" id="settings-trigger" aria-label="Settings">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+
+
+
+      <!-- Main Glassmorphic Panel (Listening / Waveform) -->
+      <div class="glass-card listening-panel state-idle" id="main-listening-card">
+        
+        <!-- Status Pill -->
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span id="main-status-label">System Idle</span>
+        </div>
+
+        <!-- Wake Word Armed Status -->
+        <div class="wake-word-pill">
+          <!-- Sparkles Inline SVG -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+          </svg>
+          <span>Wake Word Active: "viernes"</span>
+        </div>
+
+        <!-- Microphone Main Trigger Button -->
+        <div class="mic-btn-wrapper">
+          <div class="mic-outer-ring"></div>
+          <button class="mic-button" id="mic-trigger-btn" aria-label="Toggle Microphone Input">
+            <!-- Professional Mic outline SVG -->
+            <svg class="mic-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+              <line x1="12" x2="12" y1="19" y2="22"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Siri-like wave canvas visualizer -->
+        <div class="visualizer-container">
+          <canvas id="waveCanvas"></canvas>
+        </div>
+
+      </div>
+
+      <!-- Controls Dashboard Section -->
+      <div class="controls-grid">
+        
+        <!-- Media controller (System Music Automator) -->
+        <div class="glass-card media-card">
+          <div>
+            <div class="media-card-title">Automating</div>
+            <div class="media-info">
+              <h2 id="media-track-title">Linux Desktop</h2>
+              <p id="media-track-artist">System Audio Master</p>
+            </div>
+          </div>
+
+          <div class="media-buttons">
+            <button class="media-btn" id="media-prev" aria-label="Previous Track">
+              <svg viewBox="0 0 24 24">
+                <polygon points="19 20 9 12 19 4 19 20"/>
+                <rect x="5" y="4" width="2" height="16"/>
+              </svg>
+            </button>
+            <button class="media-btn play-btn" id="media-play-pause" aria-label="Play or Pause">
+              <!-- Play Symbol -->
+              <svg class="play-icon" viewBox="0 0 24 24">
+                <polygon points="8 5 19 12 8 19 8 5"/>
+              </svg>
+              <!-- Pause Symbol -->
+              <svg class="pause-icon" viewBox="0 0 24 24">
+                <rect x="6" y="4" width="4" height="16" rx="1"/>
+                <rect x="14" y="4" width="4" height="16" rx="1"/>
+              </svg>
+            </button>
+            <button class="media-btn" id="media-next" aria-label="Next Track">
+              <svg viewBox="0 0 24 24">
+                <polygon points="5 4 15 12 5 20 5 4"/>
+                <rect x="17" y="4" width="2" height="16"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- iOS 18 Control Center Dual Vertical Sliders (Volume & Gain) -->
+        <div class="sliders-panel">
+          
+          <!-- Volume Vertical Slider -->
+          <div class="cc-slider-wrapper">
+            <div class="cc-vertical-slider" id="volume-vertical-slider">
+              <div class="cc-slider-fill" id="volume-vertical-fill" style="height: 70%;"></div>
+              <div class="cc-slider-icon">
+                <!-- Speaker Volume Waves SVG -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                </svg>
+              </div>
+              <span class="cc-slider-value" id="volume-vertical-value">70%</span>
+            </div>
+            <div class="cc-slider-label">Volume</div>
+          </div>
+
+          <!-- Digital Gain Vertical Slider -->
+          <div class="cc-slider-wrapper">
+            <div class="cc-vertical-slider" id="gain-vertical-slider">
+              <div class="cc-slider-fill" id="gain-vertical-fill" style="height: 25%;"></div>
+              <div class="cc-slider-icon">
+                <!-- Lightning / Gain Boost SVG -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+              </div>
+              <span class="cc-slider-value" id="gain-vertical-value">+6dB</span>
+            </div>
+            <div class="cc-slider-label">Gain</div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Operations Panel (Fullscreen / Cinema Mode / Sensitivity Slider) -->
+      <div class="glass-card system-ops-card">
+        <div class="ops-header">Display & Capture Rules</div>
+        
+        <div class="ops-row">
+          <!-- Cinema Mode Trigger -->
+          <button class="action-button" id="cinema-btn">
+            <!-- Clapperboard Movie SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+              <path d="M2 7l4-4h12l4 4"/>
+              <path d="M2 11h20"/>
+              <path d="M7 3l-3 4M12 3l-3 4M17 3l-3 4"/>
+            </svg>
+            <span>Cinema Mode</span>
+          </button>
+          
+          <!-- Fullscreen Trigger -->
+          <button class="action-button" id="fullscreen-btn">
+            <!-- Fullscreen Arrows SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+            </svg>
+            <span>Fullscreen</span>
+          </button>
+        </div>
+
+        <!-- Sensitivity / Noise Gate threshold slider -->
+        <div class="slider-row">
+          <div class="slider-label-row">
+            <span class="slider-label-left">
+              <!-- Sensitivity Sliders Icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" x2="4" y1="21" y2="14"/>
+                <line x1="4" x2="4" y1="10" y2="3"/>
+                <line x1="12" x2="12" y1="21" y2="12"/>
+                <line x1="12" x2="12" y1="8" y2="3"/>
+                <line x1="20" x2="20" y1="21" y2="16"/>
+                <line x1="20" x2="20" y1="12" y2="3"/>
+                <line x1="2" x2="6" y1="14" y2="14"/>
+                <line x1="10" x2="14" y1="8" y2="8"/>
+                <line x1="18" x2="22" y1="16" y2="16"/>
+              </svg>
+              Noise Gate Threshold
+            </span>
+            <span class="value-badge" id="sensitivity-dash-badge">-35 dB</span>
+          </div>
+          <input type="range" min="-60" max="-10" value="-35" class="ios-range" id="sensitivity-dash-slider">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Element removed (Home indicator) -->
+
+    <!-- Slide-Up Settings Drawer -->
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+    <div class="settings-drawer" id="settings-drawer">
+      <div class="drawer-handle" id="drawer-close-handle"></div>
+      
+      <div class="drawer-header">
+        <h3>System Settings</h3>
+        <button class="drawer-close" id="drawer-close-btn">Done</button>
+      </div>
+
+      <div class="control-row">
+        <div class="control-label-row">
+          <span>Micrófono Activo</span>
+        </div>
+        <select class="ios-select" id="drawer-mic-source">
+          <option value="mobile">Móvil / iPhone (Transmisión Remota)</option>
+          <option value="pc">PC / Computadora (Micrófono Local)</option>
+        </select>
+        <span class="helper-text">Selecciona dónde escuchará Viernes las órdenes de voz.</span>
+      </div>
+
+      <div class="control-row">
+        <div class="control-label-row">
+          <span>Voz del Asistente (Móvil)</span>
+        </div>
+        <select class="ios-select" id="drawer-voice-select">
+          <option value="">Voz predeterminada del sistema</option>
+        </select>
+        <span class="helper-text">Elige la voz de síntesis para las respuestas en tu móvil.</span>
+      </div>
+
+      <div class="control-row">
+        <div class="control-label-row">
+          <span>Volumen de Pitidos (Móvil)</span>
+          <span class="value-badge" id="drawer-beep-badge">75%</span>
+        </div>
+        <input type="range" min="0" max="100" value="75" class="ios-range" id="drawer-beep-slider" style="margin-top: 10px;">
+        <span class="helper-text">Ajusta el volumen de los pitidos de feedback que suenan en tu dispositivo.</span>
+      </div>
+
+      <div class="control-row" style="margin-top: 25px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 20px;">
+        <h4 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">Guía de Controles</h4>
+        <ul style="font-size: 11px; color: var(--text-tertiary); list-style: none; display: flex; flex-direction: column; gap: 8px; line-height: 1.4;">
+          <li><strong>Volumen:</strong> Regula el volumen de reproducción general de la PC.</li>
+          <li><strong>Ganancia (Gain):</strong> Amplifica tu voz desde el móvil. Súbelo si el asistente no te escucha bien.</li>
+          <li><strong>Puerta de Ruido (Noise Gate):</strong> Filtra ruidos de fondo (como ventiladores). Los sonidos más bajos que este umbral (en dB) se ignoran para no enviar ruido inútil.</li>
+        </ul>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // State Constants
+    const STATES = {
+      IDLE: 'Idle',
+      LISTENING: 'Listening',
+      RECORDING: 'Recording',
+      PROCESSING: 'Processing'
+    };
+
+    let currentState = STATES.IDLE;
+    let realAudioStream = null;
+    let audioCtx = null;
+    let analyser = null;
+    let sourceNode = null;
+    let gainNode = null;
+    let processorNode = null;
+    let dataArray = null;
+    let useRealAudio = false;
+
+    // Auto-cut parameters
+    let recordingTimeout = null;
+    let silenceStartTime = null;
+    let recordingStartTime = null;
+    const silenceTimeoutMs = 1500; // 1.5 seconds of continuous silence to stop
+    const silenceThresholdDB = -42; // Silence threshold in dB
+
+    // Local audio elements for feedback sounds on mobile
+    let beepVolume = 0.75;
+    const wakeAudio = new Audio("/sounds/wake.wav");
+    const successAudio = new Audio("/sounds/success.wav");
+
+    function playBeep(audioElement) {
+      try {
+        audioElement.volume = beepVolume;
+        audioElement.currentTime = 0;
+        audioElement.play().catch(e => console.log("Audio play blocked or failed:", e));
+      } catch (err) {
+        console.warn("No se pudo reproducir el sonido de feedback:", err);
+      }
+    }
+
+    // Element Selectors
+    const statusLabels = {
+      [STATES.IDLE]: 'Asistente Inactivo',
+      [STATES.LISTENING]: 'Escuchando palabra de activación...',
+      [STATES.RECORDING]: 'Grabando comando de voz...',
+      [STATES.PROCESSING]: 'Procesando comando...'
+    };
+
+    const mainStatusLabel = document.getElementById('main-status-label');
+    const mainCard = document.getElementById('main-listening-card');
+    
+    // Sliders & settings elements
+    const volumeVertFill = document.getElementById('volume-vertical-fill');
+    const volumeVertVal = document.getElementById('volume-vertical-value');
+    const volumeVertSlider = document.getElementById('volume-vertical-slider');
+    
+    const gainVertFill = document.getElementById('gain-vertical-fill');
+    const gainVertVal = document.getElementById('gain-vertical-value');
+    const gainVertSlider = document.getElementById('gain-vertical-slider');
+    
+    const dashSensSlider = document.getElementById('sensitivity-dash-slider');
+    const dashSensBadge = document.getElementById('sensitivity-dash-badge');
+    let noiseGateThresholdDB = -35;
+    let isDraggingVolume = false;
+
+    // Controls
+    const micTriggerBtn = document.getElementById('mic-trigger-btn');
+    const playPauseBtn = document.getElementById('media-play-pause');
+    const cinemaBtn = document.getElementById('cinema-btn');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    
+    // Settings Drawer elements
+    const settingsTrigger = document.getElementById('settings-trigger');
+    const drawerOverlay = document.getElementById('drawer-overlay');
+    const settingsDrawer = document.getElementById('settings-drawer');
+    const drawerCloseBtn = document.getElementById('drawer-close-btn');
+    const drawerCloseHandle = document.getElementById('drawer-close-handle');
+    const drawerBeepSlider = document.getElementById('drawer-beep-slider');
+    const drawerBeepBadge = document.getElementById('drawer-beep-badge');
+    const drawerMicSource = document.getElementById('drawer-mic-source');
+    const drawerVoiceSelect = document.getElementById('drawer-voice-select');
+
+    // Settings Drawer open / close handlers
+    function openDrawer() {
+      drawerOverlay.classList.add('active');
+      settingsDrawer.classList.add('active');
+    }
+
+    function closeDrawer() {
+      drawerOverlay.classList.remove('active');
+      settingsDrawer.classList.remove('active');
+    }
+
+    settingsTrigger.addEventListener('click', openDrawer);
+    drawerOverlay.addEventListener('click', closeDrawer);
+    drawerCloseBtn.addEventListener('click', closeDrawer);
+    drawerCloseHandle.addEventListener('click', closeDrawer);
+
+    // --- Web Speech API TTS Engine ---
+    let availableVoices = [];
+
+    function populateVoices() {
+      if (!('speechSynthesis' in window)) return;
+      availableVoices = window.speechSynthesis.getVoices();
+      
+      // Filtrar por voces en español (es)
+      const esVoices = availableVoices.filter(v => v.lang.startsWith('es'));
+      
+      drawerVoiceSelect.innerHTML = '';
+      
+      if (esVoices.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'Voz predeterminada del sistema';
+        drawerVoiceSelect.appendChild(opt);
+        return;
+      }
+      
+      const savedVoiceName = localStorage.getItem('selected_tts_voice') || '';
+      
+      esVoices.forEach(voice => {
+        const opt = document.createElement('option');
+        opt.value = voice.name;
+        opt.textContent = `${voice.name} (${voice.lang})`;
+        if (voice.name === savedVoiceName) {
+          opt.selected = true;
+        }
+        drawerVoiceSelect.appendChild(opt);
+      });
+      
+      if (!savedVoiceName && esVoices.length > 0) {
+        localStorage.setItem('selected_tts_voice', esVoices[0].name);
+      }
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = populateVoices;
+      populateVoices();
+    }
+
+    drawerVoiceSelect.addEventListener('change', (e) => {
+      localStorage.setItem('selected_tts_voice', e.target.value);
+      speakText("Voz seleccionada");
+    });
+
+    function speakText(text) {
+      if (!text) return;
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'es-ES';
+        utterance.volume = 1.0;
+        utterance.rate = 0.95; // Un poco más lento para que suene natural
+        
+        const selectedVoiceName = drawerVoiceSelect.value;
+        if (selectedVoiceName && availableVoices.length > 0) {
+          const selectedVoice = availableVoices.find(v => v.name === selectedVoiceName);
+          if (selectedVoice) {
+            utterance.voice = selectedVoice;
+          }
+        } else {
+          // Buscar una voz en español como fallback
+          const esVoice = availableVoices.find(v => v.lang.startsWith('es'));
+          if (esVoice) {
+            utterance.voice = esVoice;
+          }
+        }
+        
+        window.speechSynthesis.speak(utterance);
+        console.log(`TTS móvil reproduciendo: "${text}" con voz: ${utterance.voice ? utterance.voice.name : 'default'}`);
+      } else {
+        console.warn("speechSynthesis no soportada en este navegador.");
+      }
+    }
+
+    // --- WebSocket Logic ---
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+    let ws = null;
+    let reconnectTimeout = null;
+
+    function connectWebSocket() {
+      if (ws) {
+        ws.close();
+      }
+
+      console.log(`Conectando WebSocket a: ${wsUrl}`);
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log("WebSocket conectado con éxito.");
+        // Al conectar, enviar el estado del micrófono seleccionado actualmente en el drawer
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            event: "set_mic_source",
+            source: drawerMicSource.value
+          }));
+        }
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'state') {
+            const backendState = data.state;
+            console.log(`Estado del backend: ${backendState}`);
+            
+            // Mapear el estado del asistente en Python a la UI del móvil
+            if (backendState === 'ESCUCHANDO_WAKE') {
+              transitionToState(STATES.LISTENING);
+            } else if (backendState === 'GRABANDO_COMANDO') {
+              if (currentState !== STATES.RECORDING) {
+                startRecordingCommand();
+              }
+            } else if (backendState === 'PROCESANDO') {
+              transitionToState(STATES.PROCESSING);
+            } else {
+              transitionToState(STATES.IDLE);
+            }
+          } else if (data.type === 'volume') {
+            // Sincronizar el volumen desde la PC si el usuario no está arrastrando el slider localmente
+            if (!isDraggingVolume) {
+              const volVal = data.value;
+              if (volumeVertFill && volumeVertVal) {
+                volumeVertFill.style.height = `${volVal}%`;
+                volumeVertVal.textContent = `${volVal}%`;
+              }
+            }
+          } else if (data.type === 'tts') {
+            // Reproducir la voz en el móvil
+            speakText(data.text);
+          }
+        } catch (err) {
+          console.error("Error al procesar mensaje de WebSocket:", err);
+        }
+      };
+
+      ws.onclose = () => {
+        console.log("WebSocket cerrado. Reintentando en 2 segundos...");
+        transitionToState(STATES.IDLE);
+        
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = setTimeout(connectWebSocket, 2000);
+      };
+
+      ws.onerror = (err) => {
+        console.error("Error de WebSocket:", err);
+      };
+    }
+
+    connectWebSocket();
+
+    function sendRemoteCommand(commandName) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          event: "command",
+          command: commandName
+        }));
+      }
+    }
+
+    // State Transition Core Logic
+    function transitionToState(state) {
+      currentState = state;
+
+      // Update main panel class & label text
+      if (mainCard) mainCard.className = `glass-card listening-panel state-${state.toLowerCase()}`;
+      
+      const activeMicSource = drawerMicSource.value;
+      if (activeMicSource === 'pc') {
+        if (mainStatusLabel) mainStatusLabel.textContent = 'Usando Micrófono de la PC';
+      } else {
+        if (state === STATES.LISTENING && !realAudioStream) {
+          if (mainStatusLabel) mainStatusLabel.textContent = 'Toca la pantalla para activar el micrófono';
+        } else {
+          if (mainStatusLabel) mainStatusLabel.textContent = statusLabels[state];
+        }
+      }
+
+      // Cambiar estilos de botón de micrófono
+      if (state === STATES.RECORDING) {
+        micTriggerBtn.classList.add('recording');
+      } else {
+        micTriggerBtn.classList.remove('recording');
+      }
+    }
+
+    // Mic Central Button Trigger
+    micTriggerBtn.addEventListener('click', () => {
+      if (currentState === STATES.RECORDING) {
+        stopRecordingCommand();
+      } else {
+        startRecordingCommand();
+      }
+    });
+
+    // Media Automation Play/Pause toggle
+    playPauseBtn.addEventListener('click', () => {
+      playPauseBtn.classList.toggle('playing');
+      sendRemoteCommand("pausa el video");
+      playBeep(successAudio);
+    });
+
+    // Cinema Mode dim effect
+    cinemaBtn.addEventListener('click', () => {
+      cinemaBtn.classList.toggle('active');
+      document.body.classList.toggle('cinema-active');
+      sendRemoteCommand("modo cine");
+      playBeep(successAudio);
+    });
+
+    // Fullscreen capability helper
+    fullscreenBtn.addEventListener('click', () => {
+      fullscreenBtn.classList.toggle('fullscreen-active');
+      sendRemoteCommand("pantalla completa");
+      playBeep(successAudio);
+      
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn(`No se pudo activar pantalla completa en el móvil: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    // Vertical Drag Sliders Logic (iOS-like touch/mouse interaction)
+    function setupVerticalSlider(sliderEl, fillEl, valEl, onChange, onStartDrag, onEndDrag) {
+      function updateSliderFromY(y) {
+        const rect = sliderEl.getBoundingClientRect();
+        let ratio = 1 - ((y - rect.top) / rect.height);
+        ratio = Math.max(0, Math.min(1, ratio));
+        
+        const percentage = Math.round(ratio * 100);
+        fillEl.style.height = `${percentage}%`;
+        
+        if (onChange) onChange(percentage);
+      }
+
+      function onPointerMove(e) {
+        updateSliderFromY(e.clientY);
+      }
+
+      function onPointerUp() {
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        sliderEl.style.transform = 'scale(1)';
+        if (onEndDrag) onEndDrag();
+      }
+
+      sliderEl.addEventListener('pointerdown', (e) => {
+        sliderEl.style.transform = 'scale(0.98)';
+        if (onStartDrag) onStartDrag();
+        updateSliderFromY(e.clientY);
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+      });
+    }
+
+    // Set up Volume Slider (Absolute precision)
+    let volTimeout = null;
+    setupVerticalSlider(
+      volumeVertSlider, 
+      volumeVertFill, 
+      volumeVertVal, 
+      (percentage) => {
+        volumeVertVal.textContent = `${percentage}%`;
+        
+        // Enviar volumen absoluto vía WebSocket con debounce
+        clearTimeout(volTimeout);
+        volTimeout = setTimeout(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ event: "volume", value: percentage }));
+          }
+        }, 30);
+      },
+      () => { isDraggingVolume = true; },
+      () => { isDraggingVolume = false; }
+    );
+
+    // Setup Gain Slider (Vertical only, 0 to 24dB)
+    setupVerticalSlider(gainVertSlider, gainVertFill, gainVertVal, (percentage) => {
+      const dbVal = Math.round((percentage / 100) * 24);
+      gainVertVal.textContent = `+${dbVal}dB`;
+      updateDigitalGain(dbVal);
+    });
+
+    // Settings drawer beep volume slider
+    drawerBeepSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      beepVolume = val / 100;
+      drawerBeepBadge.textContent = `${val}%`;
+    });
+
+    // Mic source selector listener
+    drawerMicSource.addEventListener('change', (e) => {
+      const source = e.target.value;
+      console.log(`Cambiando fuente de micrófono a: ${source}`);
+      
+      // Enviar evento al backend
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          event: "set_mic_source",
+          source: source
+        }));
+      }
+      
+      // Actualizar UI del móvil
+      updateMicSourceUI(source);
+    });
+
+    function updateDigitalGain(dbVal) {
+      if (gainNode) {
+        gainNode.gain.setValueAtTime(Math.pow(10, dbVal / 20), audioCtx.currentTime);
+        console.log(`Ganancia digital ajustada a: +${dbVal}dB (factor: ${Math.pow(10, dbVal / 20).toFixed(2)})`);
+      }
+    }
+
+    // --- Web Audio API Microphone & PCM Streaming Setup ---
+
+    async function startAudioCapture() {
+      if (realAudioStream) return; // Ya está capturando
+      
+      console.log("Iniciando captura de audio continua...");
+      try {
+        const constraints = { 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: false
+          } 
+        };
+        
+        realAudioStream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume();
+        }
+        
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        
+        sourceNode = audioCtx.createMediaStreamSource(realAudioStream);
+        gainNode = audioCtx.createGain();
+        
+        // Aplicar ganancia del slider vertical
+        const gainVal = parseFloat(gainVertVal.textContent.replace('dB', '').replace('+', '')) || 0;
+        gainNode.gain.setValueAtTime(Math.pow(10, gainVal / 20), audioCtx.currentTime);
+
+        processorNode = audioCtx.createScriptProcessor(4096, 1, 1);
+        
+        const inputSampleRate = audioCtx.sampleRate;
+        const outputSampleRate = 16000; // Vosk/Whisper nativo
+        
+        processorNode.onaudioprocess = (e) => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            const inputData = e.inputBuffer.getChannelData(0);
+            
+            // Medir RMS en dB para aplicar Noise Gate y detección de silencio
+            let sumSquares = 0;
+            for (let i = 0; i < inputData.length; i++) {
+              sumSquares += inputData[i] * inputData[i];
+            }
+            const rms = Math.sqrt(sumSquares / inputData.length);
+            const rmsDB = 20 * Math.log10(rms || 1e-5);
+            
+            // Si estamos en estado RECORDING (grabando comando), aplicar detección de silencio
+            if (currentState === STATES.RECORDING) {
+              if (Date.now() - recordingStartTime > 800) {
+                if (rmsDB < silenceThresholdDB) {
+                  if (!silenceStartTime) {
+                    silenceStartTime = Date.now();
+                  } else if (Date.now() - silenceStartTime > silenceTimeoutMs) {
+                    console.log("Silencio prolongado detectado. Deteniendo grabación...");
+                    setTimeout(stopRecordingCommand, 0);
+                    return;
+                  }
+                } else {
+                  silenceStartTime = null;
+                }
+              }
+            }
+
+            let processedData = inputData;
+            // Si el nivel de ruido es inferior al umbral del Noise Gate y estamos grabando el comando, silenciar la transmisión
+            if (currentState === STATES.RECORDING && rmsDB < noiseGateThresholdDB) {
+              processedData = new Float32Array(inputData.length);
+            }
+            
+            // Reducir la frecuencia de muestreo y convertir a PCM
+            const downsampled = downsampleBuffer(processedData, inputSampleRate, outputSampleRate);
+            const pcmBuffer = floatTo16BitPCM(downsampled);
+            
+            // Enviar bytes crudos vía WebSocket
+            ws.send(pcmBuffer);
+          }
+        };
+
+        // Conectar pipeline
+        sourceNode.connect(gainNode);
+        gainNode.connect(analyser);
+        analyser.connect(processorNode);
+        processorNode.connect(audioCtx.destination);
+
+        const bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+        useRealAudio = true;
+        
+        // Actualizar UI del móvil
+        transitionToState(currentState);
+        
+      } catch (err) {
+        console.warn("Acceso al micrófono denegado:", err);
+        useRealAudio = false;
+      }
+    }
+
+    function stopAudioCapture() {
+      console.log("Deteniendo captura de audio continua...");
+      if (realAudioStream) {
+        realAudioStream.getTracks().forEach(track => track.stop());
+        realAudioStream = null;
+      }
+      try {
+        if (sourceNode) sourceNode.disconnect();
+        if (gainNode) gainNode.disconnect();
+        if (processorNode) processorNode.disconnect();
+        if (audioCtx && audioCtx.state !== 'closed') {
+          audioCtx.close();
+        }
+      } catch (e) {
+        console.warn("Error al desconectar nodos de audio:", e);
+      }
+      useRealAudio = false;
+    }
+
+    function updateMicSourceUI(source) {
+      if (source === 'pc') {
+        // Deshabilitar/atenuar botón de mic en el móvil ya que se usa el de la PC
+        micTriggerBtn.classList.add('disabled');
+        micTriggerBtn.style.opacity = '0.25';
+        micTriggerBtn.style.pointerEvents = 'none';
+        
+        const label = document.getElementById('main-status-label');
+        if (label) label.textContent = 'Usando Micrófono de la PC';
+        
+        stopAudioCapture();
+      } else {
+        // Habilitar botón de mic en el móvil
+        micTriggerBtn.classList.remove('disabled');
+        micTriggerBtn.style.opacity = '1';
+        micTriggerBtn.style.pointerEvents = 'auto';
+        
+        const label = document.getElementById('main-status-label');
+        if (label) label.textContent = statusLabels[currentState];
+        
+        // Iniciar captura de audio continua para detección del wake word
+        startAudioCapture();
+        
+        // Inicializar Web Speech API con una frase vacía para desbloquear el audio en iOS
+        speakText(" ");
+      }
+    }
+
+    async function startRecordingCommand() {
+      if (currentState === STATES.RECORDING) return;
+      
+      console.log("Iniciando grabación de comando...");
+      
+      // Asegurarnos de que la captura de audio está activa
+      await startAudioCapture();
+      
+      playBeep(wakeAudio);
+      
+      // Configurar temporizadores de auto-corte
+      recordingStartTime = Date.now();
+      silenceStartTime = null;
+
+      // Corte de seguridad a los 6 segundos de grabación continua
+      clearTimeout(recordingTimeout);
+      recordingTimeout = setTimeout(() => {
+        console.log("Grabación cortada por tiempo límite.");
+        stopRecordingCommand();
+      }, 6000);
+
+      // Enviar señal de inicio al servidor si el servidor no la inició aún
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ event: "start_recording" }));
+      }
+      
+      transitionToState(STATES.RECORDING);
+    }
+
+    function stopRecordingCommand() {
+      if (currentState !== STATES.RECORDING) return;
+      
+      console.log("Deteniendo grabación de comando...");
+      clearTimeout(recordingTimeout);
+      playBeep(successAudio);
+      
+      // Enviar señal de finalización al servidor
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ event: "stop_recording" }));
+      }
+      
+      transitionToState(STATES.PROCESSING);
+    }
+
+    // --- Downsampling & Format Conversion Helpers ---
+
+    function downsampleBuffer(buffer, inputSampleRate, outputSampleRate) {
+      if (inputSampleRate === outputSampleRate) {
+        return buffer;
+      }
+      const sampleRateRatio = inputSampleRate / outputSampleRate;
+      const newLength = Math.round(buffer.length / sampleRateRatio);
+      const result = new Float32Array(newLength);
+      let offsetResult = 0;
+      let offsetBuffer = 0;
+      
+      while (offsetResult < result.length) {
+        const nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
+        let accum = 0;
+        let count = 0;
+        for (let i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
+          accum += buffer[i];
+          count++;
+        }
+        result[offsetResult] = count > 0 ? accum / count : 0;
+        offsetResult++;
+        offsetBuffer = nextOffsetBuffer;
+      }
+      return result;
+    }
+
+    function floatTo16BitPCM(float32Array) {
+      const buffer = new ArrayBuffer(float32Array.length * 2);
+      const view = new DataView(buffer);
+      let offset = 0;
+      for (let i = 0; i < float32Array.length; i++, offset += 2) {
+        let s = Math.max(-1, Math.min(1, float32Array[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true); // Little-Endian
+      }
+      return buffer;
+    }
+
+    // Siri Waveform Visualizer Canvas Rendering Loop
+    const canvas = document.getElementById('waveCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.parentElement.clientWidth * dpr;
+      canvas.height = canvas.parentElement.clientHeight * dpr;
+      ctx.scale(dpr, dpr);
+    }
+    
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    let phase = 0;
+    let currentAmplitudeMultiplier = 0.1;
+
+    function animateWaves() {
+      requestAnimationFrame(animateWaves);
+      
+      const width = canvas.width / (window.devicePixelRatio || 1);
+      const height = canvas.height / (window.devicePixelRatio || 1);
+      const centerY = height / 2;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Get real audio values if allowed
+      let inputAmplitude = 0.15;
+      if (useRealAudio && analyser && (currentState === STATES.RECORDING || drawerMicSource.value === 'mobile')) {
+        analyser.getByteTimeDomainData(dataArray);
+        let maxVal = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          const val = Math.abs(dataArray[i] - 128);
+          if (val > maxVal) {
+            maxVal = val;
+          }
+        }
+        const rms = maxVal / 128.0;
+        inputAmplitude = rms * 2.5 + 0.05;
+      } else {
+        const timestamp = Date.now();
+        if (currentState === STATES.RECORDING) {
+          inputAmplitude = 0.45 + 0.35 * Math.sin(timestamp * 0.003) * Math.cos(timestamp * 0.0009);
+        } else if (currentState === STATES.LISTENING) {
+          inputAmplitude = 0.18 + 0.06 * Math.sin(timestamp * 0.001);
+        } else if (currentState === STATES.PROCESSING) {
+          inputAmplitude = 0.28 + 0.05 * Math.sin(timestamp * 0.008);
+        } else {
+          inputAmplitude = 0.03;
+        }
+      }
+
+      currentAmplitudeMultiplier += (inputAmplitude - currentAmplitudeMultiplier) * 0.15;
+
+      // Animar el botón de micrófono según el volumen de voz capturado
+      if (currentState === STATES.RECORDING) {
+        const scaleVal = 1.0 + Math.min(0.25, currentAmplitudeMultiplier * 0.15);
+        const glowVal = 15 + Math.min(45, currentAmplitudeMultiplier * 25);
+        
+        micTriggerBtn.style.transform = `scale(${scaleVal})`;
+        micTriggerBtn.style.boxShadow = `0 0 ${glowVal}px rgba(255, 69, 58, 0.75), inset 0 2px 5px rgba(255, 255, 255, 0.15)`;
+        
+        const outerRing = document.querySelector('.mic-outer-ring');
+        if (outerRing) {
+          outerRing.style.animation = 'none';
+          const ringScale = 1.1 + Math.min(0.6, currentAmplitudeMultiplier * 0.4);
+          const ringOpacity = Math.max(0.1, 0.8 - Math.min(0.6, currentAmplitudeMultiplier * 0.3));
+          outerRing.style.transform = `scale(${ringScale})`;
+          outerRing.style.opacity = ringOpacity;
+          outerRing.style.borderColor = `rgba(255, 69, 58, ${ringOpacity})`;
+        }
+      } else {
+        micTriggerBtn.style.transform = '';
+        micTriggerBtn.style.boxShadow = '';
+        
+        const outerRing = document.querySelector('.mic-outer-ring');
+        if (outerRing) {
+          outerRing.style.transform = '';
+          outerRing.style.opacity = '';
+          outerRing.style.borderColor = '';
+          if (currentState === STATES.LISTENING) {
+            outerRing.style.animation = 'pulse-ring-blue 2s infinite cubic-bezier(0.215, 0.610, 0.355, 1)';
+          } else if (currentState === STATES.PROCESSING) {
+            outerRing.style.animation = 'spin 3s linear infinite';
+          } else {
+            outerRing.style.animation = 'none';
+          }
+        }
+      }
+
+      let waves = [];
+      if (currentState === STATES.IDLE) {
+        waves = [
+          { amplitude: 2, freq: 0.015, speed: 0.01, color: 'rgba(255, 255, 255, 0.12)', width: 1 },
+          { amplitude: 1, freq: 0.02, speed: -0.008, color: 'rgba(255, 255, 255, 0.06)', width: 1 }
+        ];
+      } else if (currentState === STATES.LISTENING) {
+        waves = [
+          { amplitude: 14, freq: 0.025, speed: 0.06, color: 'rgba(10, 132, 255, 0.55)', width: 2 },
+          { amplitude: 9, freq: 0.035, speed: -0.04, color: 'rgba(191, 90, 242, 0.4)', width: 1.5 },
+          { amplitude: 5, freq: 0.018, speed: 0.02, color: 'rgba(255, 255, 255, 0.25)', width: 1 }
+        ];
+      } else if (currentState === STATES.RECORDING) {
+        waves = [
+          { amplitude: 38, freq: 0.03, speed: 0.12, color: 'rgba(255, 69, 58, 0.65)', width: 3 },
+          { amplitude: 24, freq: 0.045, speed: -0.09, color: 'rgba(255, 159, 10, 0.55)', width: 2 },
+          { amplitude: 16, freq: 0.02, speed: 0.07, color: 'rgba(255, 255, 255, 0.45)', width: 1.5 },
+          { amplitude: 10, freq: 0.055, speed: -0.14, color: 'rgba(191, 90, 242, 0.35)', width: 1 }
+        ];
+      } else if (currentState === STATES.PROCESSING) {
+        waves = [
+          { amplitude: 16, freq: 0.07, speed: 0.18, color: 'rgba(191, 90, 242, 0.65)', width: 2.2 },
+          { amplitude: 12, freq: 0.05, speed: -0.15, color: 'rgba(10, 132, 255, 0.5)', width: 1.8 },
+          { amplitude: 7, freq: 0.09, speed: 0.22, color: 'rgba(255, 59, 48, 0.35)', width: 1 }
+        ];
+      }
+
+      phase += 0.04;
+
+      waves.forEach((w) => {
+        ctx.beginPath();
+        ctx.lineWidth = w.width;
+        ctx.strokeStyle = w.color;
+        ctx.lineCap = 'round';
+        ctx.globalCompositeOperation = 'screen';
+
+        for (let x = 0; x < width; x++) {
+          const t = x / width;
+          const envelope = Math.pow(Math.sin(t * Math.PI), 2.2);
+          const y = centerY + Math.sin(x * w.freq + (phase * w.speed * 8)) * w.amplitude * currentAmplitudeMultiplier * envelope;
+          
+          if (x === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+      });
+
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    animateWaves();
+
+    // Inicializar UI de micrófono según el valor cargado en el selector al arrancar
+    updateMicSourceUI(drawerMicSource.value);
+
+    // Reanudar el AudioContext suspendido y activar captura de audio en el primer click (exigencia de iOS Safari)
+    document.addEventListener('click', async () => {
+      if (audioCtx && audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+        console.log("AudioContext reanudado por interacción del usuario.");
+      }
+      
+      if (drawerMicSource.value === 'mobile' && !realAudioStream) {
+        console.log("Primer click del usuario detectado: iniciando captura de audio...");
+        await startAudioCapture();
+      }
+
+      // Desbloquear TTS en iOS Safari
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance("");
+        window.speechSynthesis.speak(u);
+      }
+    });
+  </script>
+
+
+</body>
+</html>
