@@ -1,6 +1,6 @@
 import os
 import json
-from dispatcher import Dispatcher
+from core.dispatcher import Dispatcher
 
 # 1. Crear un módulo de prueba en actions/
 actions_dir = "actions"
@@ -9,6 +9,8 @@ if not os.path.exists(actions_dir):
 
 test_module_content = """
 class MockActionModule:
+    def __init__(self, config=None):
+        self.config = config
     def execute(self, entities):
         print(f"--- MÓDULO DE PRUEBA EJECUTADO ---")
         print(f"Entidades recibidas: {entities}")

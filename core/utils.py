@@ -20,7 +20,8 @@ def play_sound(filename: str) -> None:
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
         base_path: str = sys._MEIPASS
     else:
-        base_path = os.path.dirname(os.path.abspath(__file__))
+        # En desarrollo, usamos el directorio raíz del proyecto (padre de core/)
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     sound_path: Final[str] = os.path.join(base_path, "sounds", filename)
 

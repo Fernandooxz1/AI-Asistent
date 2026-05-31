@@ -77,7 +77,7 @@ import time
 from typing import Optional, Dict, Any
 import ctypes
 
-from utils import play_sound
+from .utils import play_sound
 
 # Hack para suprimir los warnings molestos de ALSA en Linux
 try:

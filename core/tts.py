@@ -23,7 +23,7 @@ def say(text: str) -> None:
 
     # Redirigir al móvil si la fuente activa es el móvil
     try:
-        import web_server
+        from . import web_server
         if getattr(web_server, "active_mic_source", "pc") == "mobile" and web_server.assistant_instance:
             logger.info(f"[TTS] Redirigiendo TTS al móvil: '{text}'")
             import asyncio

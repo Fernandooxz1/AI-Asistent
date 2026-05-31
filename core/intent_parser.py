@@ -2,10 +2,52 @@ import json
 import logging
 import re
 import sys
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import ollama
 
 logger = logging.getLogger("Viernes")
+
+DEFAULT_TEMPLATES = {
+    "abrir_aplicacion": [
+        r"abrir (?P<programa>[a-zA-Z0-9_\-\s]+)",
+        r"iniciar (?P<programa>[a-zA-Z0-9_\-\s]+)",
+        r"ejecutar (?P<programa>[a-zA-Z0-9_\-\s]+)",
+        r"lanzar (?P<programa>[a-zA-Z0-9_\-\s]+)",
+        r"abre (?P<programa>[a-zA-Z0-9_\-\s]+)",
+        r"inicia (?P<programa>[a-zA-Z0-9_\-\s]+)"
+    ],
+    "abrir_navegador": [
+        r"abrir (?P<plataforma>youtube|google|twitch|kick|google\s+brave|brave|navegador)",
+        r"abre (?P<plataforma>youtube|google|twitch|kick|google\s+brave|brave|navegador)",
+        r"buscar en (?P<plataforma>youtube|google)\s+(?P<busqueda>.+)",
+        r"busca en (?P<plataforma>youtube|google)\s+(?P<busqueda>.+)",
+        r"buscar (?P<busqueda>.+)\s+en (?P<plataforma>youtube|google)",
+        r"busca (?P<busqueda>.+)\s+en (?P<plataforma>youtube|google)",
+        r"entrar a (?P<plataforma>youtube|google|twitch|kick|google\s+brave|brave|navegador)\s+de\s+(?P<creador>.+)",
+        r"entra a (?P<plataforma>youtube|google|twitch|kick|google\s+brave|brave|navegador)\s+de\s+(?P<creador>.+)",
+        r"entrar a (?P<plataforma>youtube|google|twitch|kick|google\s+brave|brave|navegador)",
+        r"entra a (?P<plataforma>youtube|google|twitch|kick|google\s+brave|brave|navegador)",
+        r"abrir en (?P<plataforma>youtube|google)\s+(?P<busqueda>.+)",
+        r"abrir la pagina de (?P<busqueda>.+)",
+        r"abrir la página de (?P<busqueda>.+)",
+        r"abre la pagina de (?P<busqueda>.+)",
+        r"abre la página de (?P<busqueda>.+)"
+    ],
+    "reproducir_youtube": [
+        r"reproducir (?P<busqueda>.+)",
+        r"reproduce (?P<busqueda>.+)",
+        r"poner (?P<busqueda>.+)\s+en\s+youtube",
+        r"pone (?P<busqueda>.+)\s+en\s+youtube",
+        r"pon (?P<busqueda>.+)\s+en\s+youtube"
+    ],
+    "lanzar_juego": [
+        r"abrir (?P<juego>[a-zA-Z0-9_\-\s]+)",
+        r"iniciar (?P<juego>[a-zA-Z0-9_\-\s]+)",
+        r"lanzar (?P<juego>[a-zA-Z0-9_\-\s]+)",
+        r"jugar (?P<juego>[a-zA-Z0-9_\-\s]+)",
+        r"jugar al (?P<juego>[a-zA-Z0-9_\-\s]+)"
+    ]
+}
 
 
 class IntentParser:
@@ -51,6 +93,104 @@ class IntentParser:
             return False
 
         return True
+
+    def _match_local_template(self, text: str) -> Optional[dict]:
+        import re
+        import unicodedata
+        from rapidfuzz import fuzz
+        
+        # Normalizar texto (eliminar tildes y caracteres extraños)
+        text_norm = unicodedata.normalize('NFKD', text).encode('ASCII', 'ignore').decode('utf-8').lower().strip()
+        
+        # 1. Intentar hacer match con las macros de teclado
+        macros_dict = self.config.get("keyboard_macros", {})
+        best_score = 0.0
+        best_macro = None
+        for macro in macros_dict.keys():
+            macro_norm = unicodedata.normalize('NFKD', macro.lower()).encode('ASCII', 'ignore').decode('utf-8').strip()
+            if macro_norm in text_norm:
+                score = 100.0
+            else:
+                score = fuzz.ratio(macro_norm, text_norm)
+            if score > best_score:
+                best_score = score
+                best_macro = macro
+                
+        if best_score >= 80.0:
+            return {
+                "intent": "automatizacion_teclado",
+                "entities": {"macro": best_macro, "_raw_text": text}
+            }
+            
+        # 2. Intentar hacer match con las plantillas predefinidas
+        whitelist_apps = self.config.get("whitelist_apps", [])
+        games_db = self.config.get("games", {})
+        
+        for intent, patterns in DEFAULT_TEMPLATES.items():
+            for pattern in patterns:
+                match = re.match(r"^" + pattern + r"$", text_norm)
+                if not match:
+                    continue
+                
+                entities = match.groupdict()
+                
+                # Validar de forma cruzada según el tipo de entidad
+                if "programa" in entities:
+                    prog = entities["programa"].lower().strip()
+                    if prog in ["vs code", "visual studio", "visual studio code"]:
+                        prog = "code"
+                    if prog in ["navegador"]:
+                        prog = "brave"
+                    
+                    if prog in whitelist_apps:
+                        entities["programa"] = prog
+                        entities["_raw_text"] = text
+                        return {"intent": "abrir_aplicacion", "entities": entities}
+                    else:
+                        continue
+                
+                elif "juego" in entities:
+                    juego = entities["juego"].lower().strip()
+                    matched_juego = None
+                    for db_juego in games_db.keys():
+                        if db_juego.lower() == juego:
+                            matched_juego = db_juego
+                            break
+                    if matched_juego:
+                        entities["juego"] = matched_juego
+                        entities["_raw_text"] = text
+                        return {"intent": "lanzar_juego", "entities": entities}
+                    else:
+                        continue
+                
+                elif "plataforma" in entities:
+                    plat = entities["plataforma"].lower().strip()
+                    if plat in ["google brave", "brave", "navegador"]:
+                        plat = "google"
+                    entities["plataforma"] = plat
+                    
+                    if "busqueda" in entities:
+                        busq = entities["busqueda"].strip()
+                        if busq.lower().startswith("a "):
+                            busq = busq[2:]
+                        elif busq.lower().startswith("la pagina de "):
+                            busq = busq[13:]
+                        elif busq.lower().startswith("la página de "):
+                            busq = busq[13:]
+                        entities["busqueda"] = busq
+                        
+                    entities["_raw_text"] = text
+                    return {"intent": "abrir_navegador", "entities": entities}
+                
+                elif "busqueda" in entities:
+                    busq = entities["busqueda"].strip()
+                    if busq.lower().startswith("a "):
+                        busq = busq[2:]
+                    entities["busqueda"] = busq
+                    entities["_raw_text"] = text
+                    return {"intent": "reproducir_youtube", "entities": entities}
+                    
+        return None
 
     def parse(self, text: str) -> dict:
         """Toma el texto del usuario y lo clasifica en un intent con sus entidades
@@ -110,6 +250,26 @@ class IntentParser:
                     }]
         except Exception as e:
             logger.warning(f"Error en cortocircuito de macros difuso: {e}")
+
+        # ── 2b. CLASIFICADOR LOCAL POR PLANTILLAS (Bypass de Ollama) ──────────
+        try:
+            conectores = [" y ", " luego ", " despues ", " después "]
+            pattern_split = "|".join(map(re.escape, conectores))
+            parts = [p.strip() for p in re.split(pattern_split, text) if p.strip()]
+            
+            local_commands = []
+            for part in parts:
+                matched_cmd = self._match_local_template(part)
+                if matched_cmd:
+                    local_commands.append(matched_cmd)
+                else:
+                    break
+            
+            if len(local_commands) == len(parts) and len(local_commands) > 0:
+                logger.info(f"⚡ [Clasificador Local] Comando resuelto localmente: {local_commands}")
+                return local_commands
+        except Exception as e:
+            logger.warning(f"Error en clasificador local por plantillas: {e}")
 
 
         # ── 3. Construcción del bloque de intents para el prompt ──────────

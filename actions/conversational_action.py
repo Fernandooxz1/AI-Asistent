@@ -5,7 +5,7 @@ import re
 import json
 import logging
 import ollama
-import tts
+from core import tts
 
 logger = logging.getLogger("Viernes")
 

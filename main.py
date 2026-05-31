@@ -9,10 +9,10 @@ from typing import Optional
 from dotenv import load_dotenv
 
 
-from audio_listener import AudioListener
-from intent_parser import IntentParser
-from dispatcher import Dispatcher
-import tts
+from core.audio_listener import AudioListener
+from core.intent_parser import IntentParser
+from core.dispatcher import Dispatcher
+from core import tts
 
 
 # ─── Configuración global de logging ─────────────────────────────────────────
@@ -144,7 +144,7 @@ class ViernesAssistant:
     def _start_web_server(self) -> None:
         """Inicia el servidor FastAPI en un hilo separado para control remoto LAN."""
         try:
-            import web_server
+            import core.web_server as web_server
             web_thread = threading.Thread(
                 target=web_server.run_server,
                 args=(self,),

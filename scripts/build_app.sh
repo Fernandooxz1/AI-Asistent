@@ -44,7 +44,15 @@ if [ -f "config.json" ]; then
     echo "   ✓ Incluyendo config.json"
 fi
 
-# Agregar hidden imports para los módulos de actions (incluyendo nuevos)
+# Módulos del núcleo (ahora dentro del paquete core/)
+CMD="$CMD --hidden-import=core.audio_listener"
+CMD="$CMD --hidden-import=core.intent_parser"
+CMD="$CMD --hidden-import=core.dispatcher"
+CMD="$CMD --hidden-import=core.web_server"
+CMD="$CMD --hidden-import=core.tts"
+CMD="$CMD --hidden-import=core.utils"
+
+# Módulos de acciones
 CMD="$CMD --hidden-import=actions.system_action"
 CMD="$CMD --hidden-import=actions.browser_action"
 CMD="$CMD --hidden-import=actions.youtube_play_action"
@@ -67,12 +75,36 @@ CMD="$CMD --hidden-import=vosk"
 CMD="$CMD --hidden-import=numpy"
 CMD="$CMD --hidden-import=tts"
 CMD="$CMD --hidden-import=faster_whisper"
+CMD="$CMD --hidden-import=fastapi"
+CMD="$CMD --hidden-import=fastapi.responses"
+CMD="$CMD --hidden-import=fastapi.staticfiles"
+CMD="$CMD --hidden-import=uvicorn"
+CMD="$CMD --hidden-import=customtkinter"
+CMD="$CMD --hidden-import=PIL"
+CMD="$CMD --hidden-import=PIL.Image"
+CMD="$CMD --hidden-import=PIL.ImageDraw"
+CMD="$CMD --hidden-import=PIL._tkinter_finder"
+CMD="$CMD --hidden-import=qrcode"
+CMD="$CMD --hidden-import=cryptography"
 
 # Recolectar todas las librerías dinámicas de Nvidia CUDA para PyInstaller
 CMD="$CMD --collect-all nvidia.cublas"
 CMD="$CMD --collect-all nvidia.cudnn"
 CMD="$CMD --collect-all nvidia.cuda_nvrtc"
 CMD="$CMD --collect-all vosk"
+CMD="$CMD --collect-all customtkinter"
+
+# Incluir el paquete core/ completo como dato
+if [ -d "core" ]; then
+    CMD="$CMD --add-data core:core"
+    echo "   ✓ Incluyendo paquete core/"
+fi
+
+# Incluir el directorio static/ que sirve el web_server (frontend remoto)
+if [ -d "static" ]; then
+    CMD="$CMD --add-data static:static"
+    echo "   ✓ Incluyendo directorio static/"
+fi
 
 # Agregar el archivo principal
 CMD="$CMD gui.py"

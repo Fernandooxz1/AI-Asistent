@@ -21,9 +21,21 @@ app = FastAPI(title="Viernes Web Remote Control")
 
 # Guardar certificados en .kiro/
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
 KIRO_DIR = os.path.join(BASE_DIR, ".kiro")
 CERT_PATH = os.path.join(KIRO_DIR, "cert.pem")
 KEY_PATH = os.path.join(KIRO_DIR, "key.pem")
+
+def get_asset_dir(name: str) -> Optional[str]:
+    """Devuelve el directorio de assets si existe (core/ o raíz del proyecto)."""
+    candidates = [
+        os.path.join(BASE_DIR, name),
+        os.path.join(PROJECT_ROOT, name),
+    ]
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return candidate
+    return None
 
 # Referencia global al asistente de Viernes
 assistant_instance = None
@@ -141,9 +153,11 @@ def web_state_callback(state: str):
 
 @app.get("/")
 async def get_index():
-    index_path = os.path.join(BASE_DIR, "static", "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
+    static_dir = get_asset_dir("static")
+    if static_dir:
+        index_path = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
     return {"message": "Viernes Web Remote Control is running. HTML client not found."}
 
 @app.websocket("/ws")
@@ -224,6 +238,15 @@ async def websocket_endpoint(websocket: WebSocket):
                             daemon=True
                         ).start()
 
+                elif event_type == "media_control":
+                    action = data.get("action")
+                    if action in ["play-pause", "next", "previous"]:
+                        logger.info(f"Comando multimedia remoto recibido: {action}")
+                        try:
+                            subprocess.run(["playerctl", action], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        except Exception as e:
+                            logger.error(f"Error al ejecutar playerctl {action}: {e}")
+
                 elif event_type == "set_mic_source":
                     source = data.get("source", "pc")
                     logger.info(f"Cambiando micrófono activo a: '{source}'")
@@ -244,6 +267,47 @@ async def websocket_endpoint(websocket: WebSocket):
                 if hasattr(assistant_instance.listener, "is_paused"):
                     assistant_instance.listener.is_paused = False
                 assistant_instance.notify_state("ESCUCHANDO_WAKE")
+
+def get_system_media_state() -> dict:
+    """Obtiene el estado actual de reproducción usando playerctl de forma eficiente."""
+    try:
+        res = subprocess.run(
+            ["playerctl", "metadata", "-f", "{{status}};{{title}};{{artist}};{{mpris:length}};{{position}}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False
+        )
+        if res.returncode == 0:
+            parts = res.stdout.strip().split(";")
+            if len(parts) >= 5:
+                status = parts[0]
+                title = parts[1]
+                artist = parts[2]
+                duration_us = parts[3]
+                position_s = parts[4]
+                
+                try:
+                    duration = float(duration_us) / 1000000.0 if duration_us else 0.0
+                except ValueError:
+                    duration = 0.0
+                    
+                try:
+                    position = float(position_s) / 1000000.0 if position_s else 0.0
+                except ValueError:
+                    position = 0.0
+                
+                return {
+                    "active": True,
+                    "status": status,
+                    "title": title if title else "Desconocido",
+                    "artist": artist if artist else "Desconocido",
+                    "duration": duration,
+                    "position": position
+                }
+        return {"active": False}
+    except Exception:
+        return {"active": False}
 
 def set_pc_volume(percentage: int):
     """Establece el volumen del sistema Linux al porcentaje exacto."""
@@ -301,7 +365,7 @@ def process_remote_audio(audio_bytes: bytes):
             logger.info(f"Transcripción remota exitosa: '{text}'")
             
             # Decir confirmación y ejecutar
-            import tts
+            from . import tts
             try:
                 commands = assistant_instance.parser.parse(text)
                 if isinstance(commands, dict):
@@ -424,8 +488,9 @@ import asyncio
 async def startup_event():
     global uvicorn_loop
     uvicorn_loop = asyncio.get_running_loop()
-    # Iniciar loop de polling de volumen en segundo plano
+    # Iniciar loops de polling en segundo plano
     asyncio.create_task(poll_volume_loop())
+    asyncio.create_task(poll_media_loop())
 
 async def poll_volume_loop():
     logger.info("Iniciando loop de polling de volumen del sistema...")
@@ -441,6 +506,21 @@ async def poll_volume_loop():
         except Exception as e:
             logger.error(f"Error en loop de polling de volumen: {e}")
 
+async def poll_media_loop():
+    logger.info("Iniciando loop de polling de estado multimedia (playerctl)...")
+    last_media = {}
+    while True:
+        await asyncio.sleep(1.0)
+        try:
+            media = get_system_media_state()
+            # Always broadcast if active (to update position), skip only if both inactive
+            if media == last_media and not media.get("active", False):
+                continue
+            last_media = media
+            await manager.broadcast({"type": "media_update", "media": media})
+        except Exception as e:
+            logger.error(f"Error en loop de polling multimedia: {e}")
+
 def run_server(assistant, port=8000):
     """Inicia el servidor Uvicorn en un hilo separado."""
     global assistant_instance
@@ -453,13 +533,13 @@ def run_server(assistant, port=8000):
     generate_self_signed_cert()
     
     # Configurar static files si el directorio existe
-    static_dir = os.path.join(BASE_DIR, "static")
-    if os.path.exists(static_dir):
+    static_dir = get_asset_dir("static")
+    if static_dir:
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     # Configurar sounds directory
-    sounds_dir = os.path.join(BASE_DIR, "sounds")
-    if os.path.exists(sounds_dir):
+    sounds_dir = get_asset_dir("sounds")
+    if sounds_dir:
         app.mount("/sounds", StaticFiles(directory=sounds_dir), name="sounds")
 
     # Iniciar uvicorn con SSL si los archivos existen

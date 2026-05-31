@@ -4,7 +4,7 @@ import sys
 import logging
 from typing import Dict, Any, Type
 
-from utils import play_sound
+from .utils import play_sound
 
 # Configuración del logger para el módulo Dispatcher
 logger = logging.getLogger(__name__)
@@ -38,8 +38,8 @@ class Dispatcher:
             if base_path not in sys.path:
                 sys.path.append(base_path)
         else:
-            # En desarrollo, usamos la ruta relativa al archivo actual
-            base_path = os.path.dirname(os.path.abspath(__file__))
+            # En desarrollo, usamos el directorio raíz del proyecto (padre de core/)
+            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
         self.actions_path = os.path.join(base_path, actions_dir)
         

@@ -684,6 +684,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      min-width: 0;
     }
     
     .media-card-title {
@@ -787,6 +788,7 @@
       background: var(--bg-card);
       border-radius: 24px;
       border: 1px solid var(--border-light);
+      min-width: 0;
     }
 
     .cc-slider-wrapper {
@@ -794,6 +796,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      min-width: 0;
     }
 
     .cc-vertical-slider {
@@ -1250,6 +1253,16 @@
               <h2 id="media-track-title">Linux Desktop</h2>
               <p id="media-track-artist">System Audio Master</p>
             </div>
+            <!-- Progress Bar -->
+            <div class="media-progress-container" style="margin: 10px 0 6px 0; display: none;" id="media-progress-block">
+              <div class="media-progress-bar-bg" style="width: 100%; height: 4px; background: rgba(255, 255, 255, 0.15); border-radius: 2px; overflow: hidden; position: relative;" id="media-progress-bar">
+                <div class="media-progress-fill" style="width: 0%; height: 100%; background: #ffffff; border-radius: 2px;" id="media-progress-fill"></div>
+              </div>
+              <div class="media-time-row" style="display: flex; justify-content: space-between; font-size: 9px; color: rgba(255,255,255,0.5); margin-top: 4px; font-weight: 500;">
+                <span id="media-time-current">0:00</span>
+                <span id="media-time-total">0:00</span>
+              </div>
+            </div>
           </div>
 
           <div class="media-buttons">
@@ -1444,6 +1457,72 @@
     let dataArray = null;
     let useRealAudio = false;
 
+    // Media state tracking
+    let mediaIsActive = false;
+    let mediaIsPlaying = false;
+    let mediaPosition = 0;
+    let mediaDuration = 0;
+    let mediaInterpolationTimer = null;
+
+    function formatTime(seconds) {
+      if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function updateMediaUI() {
+      if (!mediaIsActive) {
+        mediaProgressBlock.style.display = 'none';
+        document.getElementById('media-track-title').textContent = 'Linux Desktop';
+        document.getElementById('media-track-artist').textContent = 'System Audio Master';
+        playPauseBtn.classList.remove('playing');
+        stopMediaInterpolation();
+        return;
+      }
+
+      mediaProgressBlock.style.display = 'block';
+
+      // Update progress bar
+      if (mediaDuration > 0) {
+        const pct = Math.min(100, (mediaPosition / mediaDuration) * 100);
+        mediaProgressFill.style.width = `${pct}%`;
+      } else {
+        mediaProgressFill.style.width = '0%';
+      }
+
+      // Update timestamps
+      mediaTimeCurrent.textContent = formatTime(mediaPosition);
+      mediaTimeTotal.textContent = formatTime(mediaDuration);
+
+      // Sync play/pause button visual
+      if (mediaIsPlaying) {
+        playPauseBtn.classList.add('playing');
+      } else {
+        playPauseBtn.classList.remove('playing');
+      }
+    }
+
+    function startMediaInterpolation() {
+      stopMediaInterpolation();
+      mediaInterpolationTimer = setInterval(() => {
+        if (mediaIsPlaying && mediaIsActive) {
+          mediaPosition += 1;
+          if (mediaDuration > 0 && mediaPosition > mediaDuration) {
+            mediaPosition = mediaDuration;
+          }
+          updateMediaUI();
+        }
+      }, 1000);
+    }
+
+    function stopMediaInterpolation() {
+      if (mediaInterpolationTimer) {
+        clearInterval(mediaInterpolationTimer);
+        mediaInterpolationTimer = null;
+      }
+    }
+
     // Auto-cut parameters
     let recordingTimeout = null;
     let silenceStartTime = null;
@@ -1494,8 +1573,16 @@
     // Controls
     const micTriggerBtn = document.getElementById('mic-trigger-btn');
     const playPauseBtn = document.getElementById('media-play-pause');
+    const mediaPrevBtn = document.getElementById('media-prev');
+    const mediaNextBtn = document.getElementById('media-next');
     const cinemaBtn = document.getElementById('cinema-btn');
     const fullscreenBtn = document.getElementById('fullscreen-btn');
+    
+    // Progress Bar selectors
+    const mediaProgressBlock = document.getElementById('media-progress-block');
+    const mediaProgressFill = document.getElementById('media-progress-fill');
+    const mediaTimeCurrent = document.getElementById('media-time-current');
+    const mediaTimeTotal = document.getElementById('media-time-total');
     
     // Settings Drawer elements
     const settingsTrigger = document.getElementById('settings-trigger');
@@ -1655,6 +1742,38 @@
                 volumeVertVal.textContent = `${volVal}%`;
               }
             }
+          } else if (data.type === 'media_update') {
+            // Real-time media state sync from backend playerctl polling
+            const media = data.media;
+            if (media && media.active) {
+              mediaIsActive = true;
+              mediaIsPlaying = (media.status === 'Playing');
+              mediaPosition = media.position || 0;
+              mediaDuration = media.duration || 0;
+
+              const trackTitle = document.getElementById('media-track-title');
+              const trackArtist = document.getElementById('media-track-artist');
+              const cardTitle = document.querySelector('.media-card-title');
+
+              if (trackTitle) trackTitle.textContent = media.title || 'Desconocido';
+              if (trackArtist) trackArtist.textContent = media.artist || 'Desconocido';
+              if (cardTitle) cardTitle.textContent = 'Now Playing';
+
+              updateMediaUI();
+
+              // Start smooth interpolation if playing
+              if (mediaIsPlaying) {
+                startMediaInterpolation();
+              } else {
+                stopMediaInterpolation();
+              }
+            } else {
+              mediaIsActive = false;
+              mediaIsPlaying = false;
+              const cardTitle = document.querySelector('.media-card-title');
+              if (cardTitle) cardTitle.textContent = 'Automating';
+              updateMediaUI();
+            }
           } else if (data.type === 'tts') {
             // Reproducir la voz en el móvil
             speakText(data.text);
@@ -1723,10 +1842,28 @@
       }
     });
 
-    // Media Automation Play/Pause toggle
+    function sendMediaControl(action) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          event: "media_control",
+          action: action
+        }));
+      }
+    }
+
+    // Media Control Action Listeners
     playPauseBtn.addEventListener('click', () => {
-      playPauseBtn.classList.toggle('playing');
-      sendRemoteCommand("pausa el video");
+      sendMediaControl("play-pause");
+      playBeep(successAudio);
+    });
+
+    mediaPrevBtn.addEventListener('click', () => {
+      sendMediaControl("previous");
+      playBeep(successAudio);
+    });
+
+    mediaNextBtn.addEventListener('click', () => {
+      sendMediaControl("next");
       playBeep(successAudio);
     });
 
