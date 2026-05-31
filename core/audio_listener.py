@@ -77,7 +77,7 @@ import time
 from typing import Optional, Dict, Any
 import ctypes
 
-from .utils import play_sound
+from .utils import play_sound, get_pc_volume, set_pc_volume
 
 # Hack para suprimir los warnings molestos de ALSA en Linux
 try:
@@ -158,6 +158,7 @@ class AudioListener:
         import queue
         self.remote_audio_queue = queue.Queue()
         self.current_state = "IDLE"
+        self.original_volume = None
 
         # Asignación de propiedades desde la configuración
         self.wake_word: str = config["wake_word"].lower()
@@ -218,6 +219,14 @@ class AudioListener:
             bool: True si la palabra de activación fue detectada exitosamente, 
             False si ocurre un error crítico del sistema.
         """
+        # Salvavidas: si por algún motivo quedó el volumen bajo, restaurarlo al reiniciar la escucha
+        if hasattr(self, "original_volume") and self.original_volume is not None:
+            try:
+                set_pc_volume(self.original_volume)
+            except Exception:
+                pass
+            self.original_volume = None
+
         logger.info(f"Esperando palabra de activación: '{self.wake_word}'...")
         self._notify_state("ESCUCHANDO_WAKE")
 
@@ -269,6 +278,13 @@ class AudioListener:
                         logger.info("¡Detección exitosa (resultado parcial)! Escuchando comando...")
                         break
 
+            # Bajar volumen para capturar la voz del usuario claramente
+            try:
+                self.original_volume = get_pc_volume()
+                set_pc_volume(10)
+            except Exception as e:
+                logger.error(f"Error al bajar volumen del sistema en wake word: {e}")
+
             # Retroalimentación auditiva
             if self.is_paused:
                 self._notify_state("GRABANDO_COMANDO")
@@ -277,6 +293,13 @@ class AudioListener:
                 while self.current_state in ["GRABANDO_COMANDO", "PROCESANDO"]:
                     time.sleep(0.1)
                 logger.info("[Modo Móvil] Procesamiento remoto finalizado. Reanudando ciclo.")
+                # Restaurar volumen en modo móvil
+                if self.original_volume is not None:
+                    try:
+                        set_pc_volume(self.original_volume)
+                    except Exception:
+                        pass
+                    self.original_volume = None
                 return True
 
             if not self.is_paused:
@@ -407,6 +430,12 @@ class AudioListener:
             logger.error(f"Error inesperado al grabar comando: {e}")
             return None
         finally:
+            if hasattr(self, "original_volume") and self.original_volume is not None:
+                try:
+                    set_pc_volume(self.original_volume)
+                except Exception:
+                    pass
+                self.original_volume = None
             try:
                 stream.stop_stream()
                 stream.close()

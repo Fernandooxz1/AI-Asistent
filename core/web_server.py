@@ -17,6 +17,8 @@ import uvicorn
 # Configuración de logging
 logger = logging.getLogger("ViernesWebServer")
 
+from .utils import get_pc_volume, set_pc_volume
+
 app = FastAPI(title="Viernes Web Remote Control")
 
 # Guardar certificados en .kiro/
@@ -308,28 +310,7 @@ def get_system_media_state() -> dict:
         return {"active": False}
     except Exception:
         return {"active": False}
-
-def set_pc_volume(percentage: int):
-    """Establece el volumen del sistema Linux al porcentaje exacto."""
-    try:
-        # Intentar con PulseAudio/PipeWire (pactl)
-        subprocess.run(
-            ["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{percentage}%"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-        logger.info(f"Volumen del sistema ajustado vía pactl a: {percentage}%")
-    except Exception:
-        # Fallback a ALSA (amixer)
-        try:
-            subprocess.run(
-                ["amixer", "set", "Master", f"{percentage}%"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            logger.info(f"Volumen del sistema ajustado vía amixer a: {percentage}%")
-        except Exception as e:
-            logger.error(f"No se pudo ajustar el volumen del sistema: {e}")
+# set_pc_volume se importa desde .utils
 
 def execute_remote_macro(macro_name: str):
     """Busca y ejecuta una macro a través del dispatcher de Viernes."""
@@ -446,41 +427,7 @@ def get_lan_ip() -> str:
         return ip
     except Exception:
         return "127.0.0.1"
-
-def get_pc_volume() -> int:
-    """Obtiene el volumen actual del sistema Linux en porcentaje (0-100)."""
-    try:
-        res = subprocess.run(
-            ["pactl", "get-sink-volume", "@DEFAULT_SINK@"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=False
-        )
-        if res.returncode == 0:
-            import re
-            matches = re.findall(r"(\d+)%", res.stdout)
-            if matches:
-                return int(matches[0])
-    except Exception:
-        pass
-
-    try:
-        res = subprocess.run(
-            ["amixer", "get", "Master"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=False
-        )
-        if res.returncode == 0:
-            import re
-            matches = re.findall(r"\[(\d+)%\]", res.stdout)
-            if matches:
-                return int(matches[0])
-    except Exception:
-        pass
-    return 50  # Fallback predeterminado
+# get_pc_volume se importa desde .utils
 
 import asyncio
 

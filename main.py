@@ -269,6 +269,13 @@ class ViernesAssistant:
             print("👋 Viernes apagado. ¡Hasta la próxima!")
             print()
         finally:
+            if hasattr(self, "listener") and getattr(self.listener, "original_volume", None) is not None:
+                try:
+                    from core.utils import set_pc_volume
+                    set_pc_volume(self.listener.original_volume)
+                    logger.info("Volumen del sistema restaurado al apagar el asistente.")
+                except Exception:
+                    pass
             if self.ollama_process:
                 logger.info("Deteniendo el servicio local de Ollama...")
                 try:
