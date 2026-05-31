@@ -122,3 +122,27 @@ def set_pc_volume(percentage: int):
         except Exception as e:
             logger.error(f"No se pudo ajustar el volumen del sistema: {e}")
 
+
+def change_pc_volume_relative(delta: int) -> None:
+    """
+    Ajusta el volumen del sistema de forma relativa, respetando la atenuación del asistente.
+    """
+    try:
+        import core.web_server as web_server
+        assistant = getattr(web_server, "assistant_instance", None)
+    except Exception:
+        assistant = None
+
+    if assistant and hasattr(assistant, "listener") and getattr(assistant.listener, "original_volume", None) is not None:
+        # Si el volumen está atenuado temporalmente, modificamos el volumen original guardado
+        orig = assistant.listener.original_volume
+        new_vol = max(0, min(100, orig + delta))
+        assistant.listener.original_volume = new_vol
+        logger.info(f"[Utils] Ajustando volumen original guardado de {orig}% a {new_vol}% (durante la atenuación)")
+    else:
+        # Si no está atenuado, modificamos el volumen actual del sistema
+        current = get_pc_volume()
+        new_vol = max(0, min(100, current + delta))
+        set_pc_volume(new_vol)
+
+

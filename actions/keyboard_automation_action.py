@@ -114,6 +114,24 @@ class KeyboardAutomationModule:
             logger.warning(f"No se encontró ninguna macro de teclado para la frase: '{comando_voz_crudo}'")
             return False
 
+        # Interceptar volumen nativo antes de procesar las acciones físicas (para coordinar el control de PulseAudio/PipeWire)
+        if macro_entidad == "baja el volumen":
+            logger.info("Ajustando volumen de la PC (bajar 10% nativo)...")
+            try:
+                from core.utils import change_pc_volume_relative
+                change_pc_volume_relative(-10)
+                return True
+            except Exception as e:
+                logger.error(f"Error al bajar volumen nativo: {e}")
+        elif macro_entidad == "subi el volumen":
+            logger.info("Ajustando volumen de la PC (subir 10% nativo)...")
+            try:
+                from core.utils import change_pc_volume_relative
+                change_pc_volume_relative(10)
+                return True
+            except Exception as e:
+                logger.error(f"Error al subir volumen nativo: {e}")
+
         # 4. Obtener ventana activa para aplicar guardas inteligentes
         active_win = self._get_active_window()
         active_class = active_win.get("class", "").lower()
