@@ -7,6 +7,7 @@
 
 
   "silence_threshold": 1.5,
+  "noise_gate_threshold": 400,
   "language": "es-ES",
   "intent_mapping": {
     "abrir_aplicacion": "SystemActionModule",

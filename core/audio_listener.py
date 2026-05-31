@@ -165,6 +165,7 @@ class AudioListener:
         self.language: str = config["language"]
         self.max_duration: int = config["max_recording_duration"]
         self.silence_threshold: float = config["silence_threshold"]
+        self.noise_gate_threshold: int = config.get("noise_gate_threshold", 400)
 
         # Inicializar el dummy recognizer para compatibilidad de interfaz con la GUI
         self.recognizer = DummyRecognizer()
@@ -205,6 +206,26 @@ class AudioListener:
                 self.state_callback(state)
             except Exception as e:
                 logger.error(f"Error en callback de estado: {e}")
+
+    def _apply_noise_gate(self, data: bytes) -> bytes:
+        """
+        Aplica una puerta de ruido (Noise Gate) al chunk de audio PCM.
+        Si la energía (RMS) del audio está por debajo del umbral de ruido,
+        se reemplaza por completo con silencio absoluto (ceros).
+        """
+        if not data or self.noise_gate_threshold <= 0:
+            return data
+            
+        audio_data = np.frombuffer(data, dtype=np.int16).astype(np.float32)
+        if len(audio_data) == 0:
+            return data
+            
+        energy = np.sqrt(np.mean(np.square(audio_data)))
+        
+        if energy < self.noise_gate_threshold:
+            return b"\x00" * len(data)
+            
+        return data
 
 
 
@@ -263,6 +284,10 @@ class AudioListener:
                     data = stream.read(2000, exception_on_overflow=False)
                 if len(data) == 0:
                     continue
+                
+                # Aplicar puerta de ruido al micrófono de la PC
+                if not self.is_paused:
+                    data = self._apply_noise_gate(data)
                 
                 # Alimentar el reconocedor local
                 if self.rec.AcceptWaveform(data):
@@ -374,6 +399,8 @@ class AudioListener:
                 if len(data) == 0:
                     continue
 
+                # Aplicar puerta de ruido
+                data = self._apply_noise_gate(data)
                 frames.append(data)
 
                 # Calcular energía del chunk para control de silencio (castear a float32 para evitar desbordamiento)

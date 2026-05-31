@@ -15,11 +15,16 @@ A diferencia de los asistentes comerciales, Viernes no depende de servicios de p
 * **⛓️ Encadenamiento de Comandos ("AND"):** Soporta secuencias de órdenes en una sola frase (ej: *"busca el último video de Hytale en youtube, ponelo en pantalla completa y subí el volumen"*).
 * **⏳ Pausas de Carga Inteligentes:** Al ejecutar cadenas de comandos, el orquestador espera de forma inteligente **2.5 segundos** después de abrir aplicaciones gráficas pesadas (Brave, YouTube, Steam) para darles tiempo a cargar y tomar foco, y **0.5 segundos** entre macros de teclado simples.
 * **⚡ Cortocircuito de Macros (Reflejo):** Sistema de reflejos de coincidencia difusa (`rapidfuzz`) de alta velocidad. Si detecta comandos exactos o fonéticos de volumen, reproducción o control, los ejecuta en milisegundos sin invocar a la IA.
-* **📱 Control Remoto Web por Red Local:** Servidor FastAPI + WebSocket integrado con HTTPS seguro (certificados SSL autofirmados generados de forma automática en `.kiro/`). Permite:
+* **📱 Control Remoto Web por Red Local (PWA & HTTPS):** Servidor FastAPI + WebSocket integrado con HTTPS seguro (certificados SSL autofirmados generados de forma automática en `.kiro/`). Permite:
+  - **Soporte PWA:** Aplicación Web Progresiva instalable en iOS y Android con almacenamiento en caché offline mediante Service Worker (`static/sw.js`).
+  - **Certificados SSL Automáticos con SAN:** Generación automática de certificados SSL autofirmados inyectando la dirección IP LAN dinámica actual en los campos Subject Alternative Names (SAN). Esto permite el acceso HTTPS seguro, obligatorio en navegadores móviles modernos para otorgar permisos de micrófono (`getUserMedia`).
+  - **Asistente de Confianza SSL:** Guía interactiva (`scripts/setup_ssl_trust.sh`) y documentación (`scripts/SSL_TRUST_GUIDE.md`) para instalar y confiar en el certificado en iOS y Android.
   - Ver el estado del asistente en tiempo real (IDLE, grabando, procesando).
   - Usar la entrada de micrófono del móvil (iPhone/Android) para enviar notas de voz que se transcriben en la PC usando Whisper.
   - Controlar volumen de forma bidireccional mediante sliders.
   - Comandos multimedia directos (`play-pause`, `next`, `previous`) sincronizados por `playerctl` e interpolación de barra de progreso.
+* **🔇 Puerta de Ruido Inteligente (Noise Gate):** Filtro de supresión de ruido basado en energía RMS en `core/audio_listener.py` con umbral configurable (`noise_gate_threshold` en `config.json`). Reemplaza con silencio absoluto (ceros) las muestras de audio que no superan el nivel de energía umbral, evitando disparos involuntarios y previniendo alucinaciones de Whisper.
+* **🔊 Control de Volumen General Unificado:** Control de volumen unificado que actúa directamente sobre el canal de audio del sistema (PipeWire/PulseAudio mediante `pactl`), sincronizando de forma instantánea (~0ms) el control de volumen del slider del panel web móvil con los comandos de voz de volumen de la PC.
 * **⌨️ Automatización a Nivel Hardware:** Utiliza `ydotool` para inyectar eventos reales de entrada en el Kernel, evitando restricciones del compositor.
 * **🛡️ Sanitización Fonética:** Filtro de corrección automática para mapear palabras homófonas o mal interpretadas por el micrófono (ej: *"davoxs"*, *"da"* -> *"davo"*; *"hightail"* -> *"hytale"*).
 

@@ -80,12 +80,33 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 def generate_self_signed_cert():
-    """Genera certificados SSL autofirmados en el directorio .kiro si no existen."""
-    if os.path.exists(CERT_PATH) and os.path.exists(KEY_PATH):
-        logger.info("Certificados SSL existentes detectados.")
-        return
+    """Genera certificados SSL autofirmados en el directorio .kiro si no existen o si la IP cambió."""
+    import ipaddress
+    lan_ip = get_lan_ip()
+    ip_txt_path = os.path.join(KIRO_DIR, "cert_ip.txt")
+    
+    ip_changed = True
+    if os.path.exists(CERT_PATH) and os.path.exists(KEY_PATH) and os.path.exists(ip_txt_path):
+        try:
+            with open(ip_txt_path, "r") as f:
+                saved_ip = f.read().strip()
+            if saved_ip == lan_ip:
+                ip_changed = False
+                logger.info(f"Certificados SSL existentes detectados y válidos para la IP {lan_ip}.")
+                return
+        except Exception:
+            pass
 
-    logger.info("Generando certificados SSL autofirmados para acceso local HTTPS...")
+    if ip_changed:
+        logger.info(f"Generando nuevos certificados SSL autofirmados para la IP local {lan_ip}...")
+        # Limpiar viejos si existen
+        for p in [CERT_PATH, KEY_PATH, ip_txt_path]:
+            if os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
+
     try:
         from cryptography import x509
         from cryptography.x509.oid import NameOID
@@ -108,8 +129,19 @@ def generate_self_signed_cert():
             x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Buenos Aires"),
             x509.NameAttribute(NameOID.LOCALITY_NAME, u"Viernes"),
             x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"Viernes Assistant"),
-            x509.NameAttribute(NameOID.COMMON_NAME, u"viernes.local"),
+            x509.NameAttribute(NameOID.COMMON_NAME, lan_ip),
         ])
+
+        # SANs setup
+        san_items = [
+            x509.DNSName(u"localhost"),
+            x509.DNSName(u"viernes.local"),
+        ]
+        if lan_ip and lan_ip != "127.0.0.1":
+            try:
+                san_items.append(x509.IPAddress(ipaddress.ip_address(lan_ip)))
+            except Exception as ex:
+                logger.warning(f"No se pudo agregar IP {lan_ip} a SANs: {ex}")
 
         cert = x509.CertificateBuilder().subject_name(
             subject
@@ -124,11 +156,11 @@ def generate_self_signed_cert():
         ).not_valid_after(
             datetime.utcnow() + timedelta(days=365)
         ).add_extension(
-            x509.SubjectAlternativeName([x509.DNSName(u"localhost")]),
+            x509.SubjectAlternativeName(san_items),
             critical=False,
         ).sign(key, hashes.SHA256())
 
-        # Guardar clave y certificado
+        # Guardar clave, certificado e IP
         with open(CERT_PATH, "wb") as f:
             f.write(cert.public_bytes(serialization.Encoding.PEM))
         with open(KEY_PATH, "wb") as f:
@@ -137,7 +169,9 @@ def generate_self_signed_cert():
                 format=serialization.PrivateFormat.TraditionalOpenSSL,
                 encryption_algorithm=serialization.NoEncryption(),
             ))
-        logger.info("Certificados SSL autofirmados creados exitosamente.")
+        with open(ip_txt_path, "w") as f:
+            f.write(lan_ip)
+        logger.info(f"Certificados SSL autofirmados creados exitosamente para la IP: {lan_ip}.")
     except Exception as e:
         logger.error(f"Error al generar certificados SSL: {e}. Se intentará correr sin SSL.")
 
@@ -161,6 +195,39 @@ async def get_index():
         if os.path.exists(index_path):
             return FileResponse(index_path)
     return {"message": "Viernes Web Remote Control is running. HTML client not found."}
+
+@app.get("/manifest.json")
+async def get_manifest():
+    static_dir = get_asset_dir("static")
+    if static_dir:
+        manifest_path = os.path.join(static_dir, "manifest.json")
+        if os.path.exists(manifest_path):
+            return FileResponse(manifest_path, media_type="application/json")
+    return {"error": "manifest.json not found"}
+
+@app.get("/sw.js")
+async def get_sw():
+    static_dir = get_asset_dir("static")
+    if static_dir:
+        sw_path = os.path.join(static_dir, "sw.js")
+        if os.path.exists(sw_path):
+            return FileResponse(sw_path, media_type="application/javascript")
+    return {"error": "sw.js not found"}
+
+@app.get("/icon-{icon_name}.png")
+async def get_icon(icon_name: str):
+    static_dir = get_asset_dir("static")
+    if static_dir:
+        icon_path = os.path.join(static_dir, f"icon-{icon_name}.png")
+        if os.path.exists(icon_path):
+            return FileResponse(icon_path, media_type="image/png")
+    return {"error": f"icon-{icon_name}.png not found"}
+
+@app.get("/cert.pem")
+async def download_cert():
+    if os.path.exists(CERT_PATH):
+        return FileResponse(CERT_PATH, media_type="application/x-x509-ca-cert", filename="viernes-cert.pem")
+    return {"error": "Certificate not found"}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
