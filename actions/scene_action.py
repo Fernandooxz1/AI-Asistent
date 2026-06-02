@@ -67,16 +67,59 @@ class SceneActionModule(ActionModule):
             return 9
         return None
 
+    def _register_temp_window_rule(self, app_cmd: str, workspace: int) -> None:
+        """
+        Registra una regla de ventana dinámica en Hyprland-Lua para asegurar
+        que la ventana de la aplicación se enrute al workspace correcto.
+        """
+        app_cmd_lower = app_cmd.lower()
+        match_configs = []
+        
+        if "notebooklm.google.com" in app_cmd_lower:
+            match_configs.append("{ class = \"notebooklm\" }")
+            match_configs.append("{ title = \"NotebookLM\" }")
+        elif "gemini.google.com" in app_cmd_lower:
+            match_configs.append("{ class = \"gemini\" }")
+            match_configs.append("{ title = \"Gemini\" }")
+        elif "agy" in app_cmd_lower:
+            match_configs.append("{ class = \"AlacrittyAgy\" }")
+            match_configs.append("{ title = \"agy\" }")
+        elif "youtube.com" in app_cmd_lower or "youtube" in app_cmd_lower:
+            match_configs.append("{ class = \"youtube\" }")
+            match_configs.append("{ title = \"YouTube\" }")
+            
+        for match in match_configs:
+            eval_cmd = f'hl.window_rule({{ match = {match}, workspace = "{workspace}" }})'
+            logger.info(f"Registrando regla de ventana dinámica vía Lua: {eval_cmd}")
+            subprocess.run(["hyprctl", "eval", eval_cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     def execute(self, entities: Dict[str, Any]) -> bool:
         """
         Ejecuta todas las acciones asociadas al escenario seleccionado.
+        Lanza la ejecución de fondo en un hilo secundario para evitar
+        congelar la interfaz gráfica de usuario y el servidor web.
         """
         if not self.validate_entities(entities):
             return False
 
+        import threading
+        escenario_name = entities["escenario"]
+        logger.info(f"Delegando activación del escenario '{escenario_name}' a un hilo secundario.")
+        threading.Thread(
+            target=self._execute_async,
+            args=(entities,),
+            daemon=True,
+            name=f"SceneAction_{escenario_name}"
+        ).start()
+        return True
+
+    def _execute_async(self, entities: Dict[str, Any]) -> None:
+        """
+        Lógica interna del escenario ejecutada de forma asíncrona.
+        """
         escenario_name = entities["escenario"]
         scene_config = self.config.get("scenes", {}).get(escenario_name, {})
-        logger.info(f"Iniciando activación del escenario: '{escenario_name}'")
+        logger.info(f"Iniciando activación asíncrona del escenario: '{escenario_name}'")
 
         # ── 1. CERRAR PROCESOS (close_processes) ──
         close_processes = scene_config.get("close_processes", [])
@@ -112,7 +155,7 @@ class SceneActionModule(ActionModule):
             for cmd in system_commands:
                 try:
                     logger.info(f"Comando: '{cmd}'")
-                    # Ejecutar comandos secuenciales de forma síncrona
+                    # Ejecutar comandos secuenciales de forma síncrona en el hilo secundario
                     subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 except Exception as e:
                     logger.error(f"Error al ejecutar el comando del sistema '{cmd}': {e}")
@@ -127,29 +170,18 @@ class SceneActionModule(ActionModule):
                     workspace = self._get_workspace_for_app(app)
                     if workspace is not None:
                         target_workspaces.append(workspace)
-                        # Intentar lanzar nativamente en el workspace con reglas vía Hyprland-Lua
-                        lua_cmd = f'hl.dsp.exec_cmd("[workspace {workspace} silent] {app}")'
-                        logger.info(f"Intentando abrir '{app}' en workspace {workspace} vía Lua: {lua_cmd}")
-                        res = subprocess.run(["hyprctl", "dispatch", lua_cmd], capture_output=True, text=True)
-                        if res.returncode == 0 and "error" not in res.stdout.lower():
-                            logger.info(f"Aplicación '{app}' lanzada exitosamente en workspace {workspace} vía Lua.")
-                            time.sleep(0.1)
-                            continue
-                        else:
-                            logger.warning(f"Fallo al abrir vía Lua ({res.stdout.strip()}). Usando fallback...")
-                            
-                            # Fallback 1: Intentar cambiar de workspace con Lua antes de lanzar
-                            ws_cmd = f'hl.dsp.focus({{ workspace = "{workspace}" }})'
-                            res_ws = subprocess.run(["hyprctl", "dispatch", ws_cmd], capture_output=True, text=True)
-                            if res_ws.returncode != 0 or "error" in res_ws.stdout.lower():
-                                # Fallback 2: Cambiar de workspace estándar
-                                subprocess.run(["hyprctl", "dispatch", "workspace", str(workspace)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                            time.sleep(0.2)
+                        
+                        # 1. Registrar las reglas de ventana dinámicas en Hyprland para que se enruten correctamente
+                        self._register_temp_window_rule(app, workspace)
+                        
+                        # 2. Modificar Alacritty para que use la clase esperada por la regla de ventana
+                        if "alacritty" in app.lower() and "agy" in app.lower() and "--class" not in app.lower():
+                            app = app.replace("alacritty", "alacritty --class AlacrittyAgy")
 
                     logger.info(f"Lanzando aplicación en segundo plano: {app}")
                     args = shlex.split(app)
                     subprocess.Popen(args, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    time.sleep(0.1)  # Pequeño delay de espaciado secuencial
+                    time.sleep(0.3)  # Pequeño delay de espaciado secuencial
                 except Exception as e:
                     logger.error(f"Error al abrir la aplicación '{app}': {e}")
 
@@ -167,7 +199,7 @@ class SceneActionModule(ActionModule):
                     else:
                         # Si no existe en la config, ejecutarla directamente como string macro
                         keyboard_module._execute_string_macro(macro)
-                    time.sleep(0.1)
+                    time.sleep(0.15)
             except Exception as e:
                 logger.error(f"Error al ejecutar macros de teclado: {e}")
 
@@ -224,5 +256,4 @@ class SceneActionModule(ActionModule):
                 # Fallback estándar
                 subprocess.run(["hyprctl", "dispatch", "workspace", str(primary_ws)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-        logger.info(f"Escenario '{escenario_name}' activado con éxito.")
-        return True
+        logger.info(f"Escenario '{escenario_name}' activado con éxito de forma asíncrona.")
