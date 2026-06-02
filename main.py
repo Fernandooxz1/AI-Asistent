@@ -5,6 +5,7 @@ import logging
 import time
 import subprocess
 import threading
+import secrets
 from typing import Optional
 from dotenv import load_dotenv
 
@@ -37,8 +38,11 @@ class ViernesAssistant:
     """
 
     def __init__(self, config_path: str = "config.json", state_callback=None) -> None:
+        self.pair_token = secrets.token_hex(16)
+        self.pair_pin = str(secrets.randbelow(900000) + 100000)
         """
         Inicializa todos los subsistemas de Viernes.
+
 
         Pasos:
         1. Carga las variables de entorno desde .env.
@@ -77,8 +81,10 @@ class ViernesAssistant:
                 f"No se encontró el archivo de configuración en: '{config_path}'"
             )
 
+        self.config_path = config_path
         with open(config_path, "r", encoding="utf-8") as f:
             config: dict = json.load(f)
+        self.config = config
 
         logger.info(f"Configuración cargada desde '{config_path}'")
 
@@ -140,6 +146,30 @@ class ViernesAssistant:
                 cb(state)
             except Exception as e:
                 logger.error(f"Error en callback de estado remoto: {e}")
+
+    def reload_config(self) -> None:
+        """Recarga la configuración desde disco y la actualiza en los subsistemas."""
+        try:
+            with open(self.config_path, "r", encoding="utf-8") as f:
+                new_config = json.load(f)
+            self.config = new_config
+            
+            # Actualizar en memoria en los subsistemas
+            self.listener.config = new_config
+            self.listener.wake_word = new_config["wake_word"].lower()
+            self.listener.language = new_config["language"]
+            self.listener.max_duration = new_config["max_recording_duration"]
+            self.listener.silence_threshold = new_config["silence_threshold"]
+            self.listener.noise_gate_threshold = new_config.get("noise_gate_threshold", 400)
+            
+            self.parser.config = new_config
+            self.parser.model_name = new_config.get("model_name", "llama3")
+            
+            self.dispatcher.config = new_config
+            self.dispatcher.intent_mapping = new_config.get("intent_mapping", {})
+            logger.info("Configuración recargada exitosamente en todos los subsistemas.")
+        except Exception as e:
+            logger.error(f"Error al recargar la configuración: {e}")
 
     def _start_web_server(self) -> None:
         """Inicia el servidor FastAPI en un hilo separado para control remoto LAN."""

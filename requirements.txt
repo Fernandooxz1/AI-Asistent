@@ -15,4 +15,4 @@ websockets
 cryptography
 qrcode
 pillow
-
+PyJWT

@@ -152,12 +152,12 @@ Thumbs.db
 .pydevproject
 .settings/
 
+# Extras
+future-features.md
+
 # Kiro Local environment & scratch settings
 scratch/
 .kiro/
-
-# Sensitive codes
-sounds/hytale-backup-codes.txt
 
 # Agent files
 .agents/

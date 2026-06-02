@@ -5,6 +5,59 @@ import unicodedata
 
 logger = logging.getLogger("Viernes")
 
+# Mapeo de nombres de teclas amigables a códigos de Linux ydotool
+KEY_MAP = {
+    # Modificadores
+    "SUPER": 125, "WIN": 125, "META": 125, "RSUPER": 126, "RWIN": 126,
+    "CTRL": 29, "CONTROL": 29, "LCTRL": 29, "RCTRL": 97,
+    "SHIFT": 42, "LSHIFT": 42, "MAYUS": 42, "RSHIFT": 54,
+    "ALT": 56, "LALT": 56, "RALT": 100, "ALTGR": 100,
+    
+    # Navegación y Edición
+    "SPACE": 57, "ESPACIO": 57,
+    "ENTER": 28, "INTRO": 28, "RETURN": 28,
+    "TAB": 15,
+    "BACKSPACE": 14, "BORRAR": 14,
+    "ESC": 1, "ESCAPE": 1,
+    "DELETE": 111, "SUPR": 111,
+    "INSERT": 110, "INS": 110,
+    "HOME": 102, "INICIO": 102,
+    "END": 107, "FIN": 107,
+    "PAGEUP": 104, "PGUP": 104,
+    "PAGEDOWN": 109, "PGDN": 109,
+    
+    # Flechas
+    "UP": 103, "ARRIBA": 103,
+    "DOWN": 108, "ABAJO": 108,
+    "LEFT": 105, "IZQUIERDA": 105,
+    "RIGHT": 106, "DERECHA": 106,
+    
+    # Funciones
+    "F1": 59, "F2": 60, "F3": 61, "F4": 62, "F5": 63, "F6": 64,
+    "F7": 65, "F8": 66, "F9": 67, "F10": 68, "F11": 87, "F12": 88,
+    
+    # Multimedia
+    "VOLUP": 115, "VOLDOWN": 114, "MUTE": 113,
+    "PLAYPAUSE": 164, "STOP": 166, "NEXT": 163, "PREV": 165, "PREVIOUS": 165,
+    
+    # Signos
+    "MINUS": 12, "EQUAL": 13, "COMMA": 51, "PERIOD": 52,
+    "SEMICOLON": 39, "APOSTROPHE": 40, "GRAVE": 41, "BACKSLASH": 43, "SLASH": 53
+}
+
+# Añadir letras dinámicamente A-Z
+for code, letter in enumerate("QWERTYUIOP", start=16):
+    KEY_MAP[letter] = code
+for code, letter in enumerate("ASDFGHJKL", start=30):
+    KEY_MAP[letter] = code
+for code, letter in enumerate("ZXCVBNM", start=44):
+    KEY_MAP[letter] = code
+
+# Añadir números dinámicamente 0-9
+for num in range(10):
+    KEY_MAP[str(num)] = 11 if num == 0 else num + 1
+
+
 class KeyboardAutomationModule:
     """
     Módulo encargado de ejecutar macros secuenciales de teclado y comandos de Hyprland.
@@ -80,6 +133,79 @@ class KeyboardAutomationModule:
             
         return False
 
+    def _execute_string_macro(self, macro_str: str) -> None:
+        """
+        Parse y ejecuta macros con la sintaxis simplificada:
+        "SUPER + SHIFT + M, -2, SUPER + LALT + U"
+        o comandos especiales como "comando:pkill -f viernes"
+        """
+        macro_str = macro_str.strip()
+        if macro_str.startswith("comando:") or macro_str.startswith("cmd:"):
+            # Es un comando de sistema
+            cmd_part = macro_str.split(":", 1)[1].strip()
+            args = cmd_part.split()
+            if args:
+                logger.info(f"Ejecutando comando de macro: {args}")
+                subprocess.run(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return
+
+        # Separar por comas para cada paso
+        steps = macro_str.split(",")
+        for step in steps:
+            step = step.strip()
+            if not step:
+                continue
+
+            # Check if it's a sleep (starts with -)
+            if step.startswith("-"):
+                try:
+                    duration = abs(float(step))
+                    logger.info(f"Macro sleep: {duration}s")
+                    time.sleep(duration)
+                except ValueError:
+                    logger.warning(f"Duración de sleep no válida en macro: '{step}'")
+                continue
+
+            # Check if it's a command
+            if step.startswith("comando:") or step.startswith("cmd:"):
+                cmd_part = step.split(":", 1)[1].strip()
+                args = cmd_part.split()
+                if args:
+                    logger.info(f"Ejecutando comando de macro: {args}")
+                    subprocess.run(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                continue
+
+            # Parse combo (e.g. SUPER + SHIFT + M)
+            keys = [k.strip().upper() for k in step.split("+") if k.strip()]
+            if not keys:
+                continue
+
+            # Convert to codes
+            key_codes = []
+            for key in keys:
+                code = KEY_MAP.get(key)
+                if code is not None:
+                    key_codes.append(code)
+                else:
+                    logger.warning(f"Tecla no reconocida en macro: '{key}'")
+
+            if not key_codes:
+                continue
+
+            logger.info(f"Pulsando combinación: {keys} -> {key_codes}")
+            
+            # Press keys with 0.2s delay
+            for code in key_codes:
+                subprocess.run(["ydotool", "key", f"{code}:1"], stdout=subprocess.DEVNULL)
+                time.sleep(0.2)
+
+            # Release keys in reverse order
+            for code in reversed(key_codes):
+                subprocess.run(["ydotool", "key", f"{code}:0"], stdout=subprocess.DEVNULL)
+            
+            # Small delay after release
+            time.sleep(0.05)
+
     def execute(self, entities: dict) -> bool:
         comando_voz_crudo = entities.get("_raw_text", "")
         
@@ -87,9 +213,10 @@ class KeyboardAutomationModule:
         macro_entidad = entities.get("macro")
         
         # 1. Intentar control nativo multimedia para macros de reproducción antes de emular teclado
-        if macro_entidad in ["pausa el video", "pausa la musica", "pone musica"]:
-            logger.info(f"Intentando control nativo multimedia (playerctl play-pause) para macro: '{macro_entidad}'")
-            if self._run_playerctl("play-pause"):
+        if macro_entidad in ["pausa", "pausa el video"]:
+            player_action = "play-pause"
+            logger.info(f"Intentando control nativo multimedia (playerctl {player_action}) para macro: '{macro_entidad}'")
+            if self._run_playerctl(player_action):
                 return True
             logger.info("Control nativo falló o no hay reproductores activos. Continuando con la macro estándar...")
 
@@ -148,8 +275,11 @@ class KeyboardAutomationModule:
             return False
 
         try:
-            for action in macro_actions:
-                self._run_action(action, active_class)
+            if isinstance(macro_actions, str):
+                self._execute_string_macro(macro_actions)
+            else:
+                for action in macro_actions:
+                    self._run_action(action, active_class)
             return True
         except Exception as e:
             logger.error(f"Error crítico al ejecutar la macro de teclado: {e}")

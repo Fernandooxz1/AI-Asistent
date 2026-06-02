@@ -86,6 +86,7 @@ CMD="$CMD --hidden-import=PIL.ImageDraw"
 CMD="$CMD --hidden-import=PIL._tkinter_finder"
 CMD="$CMD --hidden-import=qrcode"
 CMD="$CMD --hidden-import=cryptography"
+CMD="$CMD --hidden-import=jwt"
 
 # Recolectar todas las librerías dinámicas de Nvidia CUDA para PyInstaller
 CMD="$CMD --collect-all nvidia.cublas"
