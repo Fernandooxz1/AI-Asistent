@@ -51,6 +51,9 @@ CMD="$CMD --hidden-import=core.dispatcher"
 CMD="$CMD --hidden-import=core.web_server"
 CMD="$CMD --hidden-import=core.tts"
 CMD="$CMD --hidden-import=core.utils"
+CMD="$CMD --hidden-import=core.telemetry"
+CMD="$CMD --hidden-import=core.download_watcher"
+CMD="$CMD --hidden-import=core.audio_fft"
 
 # Módulos de acciones
 CMD="$CMD --hidden-import=actions.system_action"
@@ -87,6 +90,8 @@ CMD="$CMD --hidden-import=PIL._tkinter_finder"
 CMD="$CMD --hidden-import=qrcode"
 CMD="$CMD --hidden-import=cryptography"
 CMD="$CMD --hidden-import=jwt"
+CMD="$CMD --hidden-import=psutil"
+CMD="$CMD --hidden-import=pyperclip"
 
 # Recolectar todas las librerías dinámicas de Nvidia CUDA para PyInstaller
 CMD="$CMD --collect-all nvidia.cublas"
@@ -94,6 +99,7 @@ CMD="$CMD --collect-all nvidia.cudnn"
 CMD="$CMD --collect-all nvidia.cuda_nvrtc"
 CMD="$CMD --collect-all vosk"
 CMD="$CMD --collect-all customtkinter"
+CMD="$CMD --collect-all watchdog"
 
 # Incluir el paquete core/ completo como dato
 if [ -d "core" ]; then

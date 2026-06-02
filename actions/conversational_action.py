@@ -39,6 +39,7 @@ class ConversationalModule:
             return []
 
     def execute(self, entities: dict) -> bool:
+        import datetime
         necesita_busqueda = entities.get("necesita_busqueda", "false")
         
         # El text original está guardado en _raw_text
@@ -49,8 +50,15 @@ class ConversationalModule:
             if not busqueda:
                 busqueda = raw_text
                 
-            logger.info(f"🔍 Buscando en internet: '{busqueda}'...")
-            search_results = self._search_ddg(busqueda)
+            # Contextualizar la búsqueda con el año actual si no está presente
+            now = datetime.datetime.now()
+            current_year = str(now.year)
+            query_for_search = busqueda
+            if current_year not in query_for_search:
+                query_for_search = f"{query_for_search} {current_year}"
+
+            logger.info(f"🔍 Buscando en internet: '{query_for_search}'...")
+            search_results = self._search_ddg(query_for_search)
             
             if not search_results:
                 logger.warning("No se obtuvieron resultados de la búsqueda web.")
@@ -59,13 +67,27 @@ class ConversationalModule:
                 context = "\n".join([f"- {res}" for res in search_results])
                 logger.info(f"✓ Resultados obtenidos: {len(search_results)} fragmentos.")
                 
+            # Formatear fecha actual en español
+            dias_semana = {
+                "Monday": "lunes",
+                "Tuesday": "martes",
+                "Wednesday": "miércoles",
+                "Thursday": "jueves",
+                "Friday": "viernes",
+                "Saturday": "sábado",
+                "Sunday": "domingo"
+            }
+            dia_nombre = dias_semana.get(now.strftime('%A'), now.strftime('%A'))
+            fecha_hoy = f"{dia_nombre}, {now.strftime('%d/%m/%Y')}"
+
             prompt = f"""
+            Fecha de hoy: {fecha_hoy}
             El usuario preguntó: '{raw_text}'
             
             Resultados de búsqueda web en tiempo real:
             {context}
             
-            Por favor, responde de forma extremadamente resumida, natural y directa a la pregunta basándote en los datos anteriores. Tu respuesta será leída en voz alta por el sintetizador, por lo que debe ser fluida, conversacional y breve (máximo 2 oraciones).
+            Por favor, responde EN ESPAÑOL de forma extremadamente resumida, natural y directa a la pregunta basándote en la fecha de hoy ({fecha_hoy}) y en los datos anteriores. Si los resultados indican que no hay eventos hoy o que pertenecen a fechas pasadas/futuras, sé claro al respecto. Tu respuesta será leída en voz alta por el sintetizador, por lo que debe ser fluida, conversacional y breve (máximo 2 oraciones).
             """
             try:
                 logger.info(f"🧠 Consultando a {self.model_name} para sintetizar la respuesta...")

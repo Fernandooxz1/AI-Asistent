@@ -161,6 +161,7 @@ class ViernesAssistant:
             self.listener.max_duration = new_config["max_recording_duration"]
             self.listener.silence_threshold = new_config["silence_threshold"]
             self.listener.noise_gate_threshold = new_config.get("noise_gate_threshold", 400)
+            self.listener.recognizer.energy_threshold = new_config.get("energy_threshold", 800)
             
             self.parser.config = new_config
             self.parser.model_name = new_config.get("model_name", "llama3")

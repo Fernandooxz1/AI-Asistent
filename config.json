@@ -2,10 +2,8 @@
   "model_name": "qwen2.5:3b",
   "whisper_model": "medium",
   "wake_word": "viernes",
-  "max_recording_duration": 5,
-
-
-
+  "max_recording_duration": 12,
+  "energy_threshold": 800,
   "silence_threshold": 1.5,
   "noise_gate_threshold": 400,
   "language": "es-ES",
@@ -92,12 +90,10 @@
     "davos": "davo",
     "abrime": "abrir",
     "hightail": "hytale",
-    "partido": "play 2",
     "partidito": "play 2",
     "pes": "play 2",
     "fifa": "play 2",
     "resident": "resident evil 8",
-    "dragon ball": "dragon ball sparking zero",
     "hyta": "hytale",
     "hytail": "hytale",
     "vs code": "code",

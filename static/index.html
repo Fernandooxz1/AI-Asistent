@@ -16,14 +16,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=SF+Pro+Display&display=swap" rel="stylesheet">
   
-  <style>
-    /* Premium iOS UI Variables */
+<style>
+    /* Stark V.I.E.R.N.E.S. Hologram HUD variables */
     :root {
-      --bg-dark: #05070c;
-      --bg-card: rgba(24, 28, 41, 0.45);
-      --bg-card-hover: rgba(24, 28, 41, 0.6);
-      --bg-island: #000000;
-      
+      --bg-dark: #080b12;
+      --bg-card: rgba(12, 18, 32, 0.45);
+      --bg-card-hover: rgba(12, 18, 32, 0.65);
+      --accent-cyan: #00f3ff;
+      --accent-cyan-rgb: 0, 243, 255;
       --accent-blue: #0A84FF;
       --accent-blue-rgb: 10, 132, 255;
       --accent-red: #FF453A;
@@ -32,13 +32,11 @@
       --accent-purple-rgb: 191, 90, 242;
       --accent-green: #30D158;
       --accent-orange: #FF9F0A;
-      
       --text-primary: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.65);
-      --text-tertiary: rgba(255, 255, 255, 0.4);
-      --border-light: rgba(255, 255, 255, 0.08);
-      --border-glow: rgba(255, 255, 255, 0.15);
-      
+      --text-secondary: #a0aec0;
+      --text-tertiary: rgba(160, 174, 192, 0.4);
+      --border-light: rgba(0, 243, 255, 0.15);
+      --border-glow: rgba(0, 243, 255, 0.25);
       --glass-blur: blur(25px);
     }
 
@@ -61,9 +59,11 @@
     body {
       background-color: var(--bg-dark);
       background-image: 
-        radial-gradient(circle at 15% 20%, rgba(10, 132, 255, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 15% 20%, rgba(0, 243, 255, 0.12) 0%, transparent 45%),
         radial-gradient(circle at 85% 80%, rgba(191, 90, 242, 0.08) 0%, transparent 45%),
-        radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.8) 0%, var(--bg-dark) 100%);
+        linear-gradient(rgba(0, 243, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.015) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px;
       font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: var(--text-primary);
       display: flex;
@@ -80,7 +80,7 @@
       left: 20%;
       width: 250px;
       height: 250px;
-      background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(0, 243, 255, 0.15) 0%, transparent 70%);
       filter: blur(40px);
       pointer-events: none;
       z-index: -1;
@@ -93,7 +93,7 @@
       right: 15%;
       width: 320px;
       height: 320px;
-      background: radial-gradient(circle, rgba(191, 90, 242, 0.08) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(191, 90, 242, 0.1) 0%, transparent 70%);
       filter: blur(50px);
       pointer-events: none;
       z-index: -1;
@@ -115,8 +115,8 @@
         0px 0px 0px 4px #0c0c0e,
         0px 0px 0px 12px #151517,
         0 30px 70px rgba(0, 0, 0, 0.9),
-        0 0 100px rgba(255, 159, 10, 0.07);
-      border-color: rgba(255, 159, 10, 0.15);
+        0 0 100px rgba(0, 243, 255, 0.05);
+      border-color: rgba(0, 243, 255, 0.1);
     }
     body.cinema-active::after {
       content: '';
@@ -127,26 +127,22 @@
       pointer-events: none;
     }
 
-    /* Clean Page/Content Wrapper (No physical phone borders inside the screen) */
+    /* Bezel Device Wrapper */
     .device-frame {
       position: relative;
       width: 100%;
       max-width: 480px; /* Centered layout on desktop, full-width on mobile */
       height: 100%;
-      background: #090c13;
+      max-height: 920px;
+      background: #080b12;
       display: flex;
       flex-direction: column;
       z-index: 10;
       overflow: hidden;
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      box-shadow: 0 0 30px rgba(0, 243, 255, 0.1), 0 30px 70px rgba(0, 0, 0, 0.7);
+      border-radius: 32px;
       transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    /* Ocultar barra de estado simulada e isla flotante */
-    .ios-status-bar {
-      display: none !important;
-    }
-    .dynamic-island-container {
-      display: none !important;
     }
 
     /* Responsive adjustments */
@@ -159,7 +155,10 @@
       .device-frame {
         max-width: 100vw;
         height: 100% !important;
-        overflow: hidden !important;
+        max-height: 100% !important;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
       }
       .bg-glow-1, .bg-glow-2 {
         display: none;
@@ -172,299 +171,111 @@
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
       border: 1px solid var(--border-light);
-      border-radius: 24px;
-      padding: 20px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(0, 243, 255, 0.05);
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    
-    .glass-card:hover {
-      background: var(--bg-card-hover);
-      border-color: rgba(255, 255, 255, 0.12);
-    }
-
-    /* iOS Status Bar */
-    .ios-status-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 32px 4px 32px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #fff;
-      user-select: none;
-      z-index: 100;
-      background: transparent;
-    }
-    
-    .status-icons {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-    
-    .battery {
-      width: 23px;
-      height: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.55);
-      border-radius: 3px;
-      padding: 1px;
       position: relative;
+      overflow: hidden;
     }
     
-    .battery-level {
-      width: 82%;
-      height: 100%;
-      background-color: #fff;
-      border-radius: 1.5px;
-      transition: width 0.5s ease;
-    }
-    
-    .battery::after {
+    .glass-card::before {
       content: '';
       position: absolute;
-      right: -3px;
-      top: 3px;
-      width: 1.5px;
-      height: 4px;
-      background-color: rgba(255, 255, 255, 0.55);
-      border-radius: 0 1px 1px 0;
-    }
-
-    /* iOS Dynamic Island */
-    .dynamic-island-container {
-      position: absolute;
-      top: 11px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 200;
-      display: flex;
-      justify-content: center;
+      top: 0;
+      left: 0;
+      width: 8px;
+      height: 8px;
+      border-top: 2px solid var(--accent-cyan);
+      border-left: 2px solid var(--accent-cyan);
+      border-top-left-radius: 3px;
       pointer-events: none;
     }
 
-    .dynamic-island {
-      width: 110px;
-      height: 30px;
-      background: var(--bg-island);
-      border-radius: 20px;
-      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.2);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 14px;
-      color: #fff;
-      font-size: 11px;
-      overflow: hidden;
-      border: 0.5px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      pointer-events: auto;
+    .glass-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 8px;
+      height: 8px;
+      border-bottom: 2px solid var(--accent-cyan);
+      border-right: 2px solid var(--accent-cyan);
+      border-bottom-right-radius: 3px;
+      pointer-events: none;
     }
 
-    /* Island states */
-    .dynamic-island.state-idle {
-      width: 110px;
-      height: 30px;
-    }
-    .dynamic-island.state-listening {
-      width: 200px;
-      height: 38px;
-      border-radius: 22px;
-      border-color: rgba(var(--accent-blue-rgb), 0.3);
-    }
-    .dynamic-island.state-recording {
-      width: 220px;
-      height: 38px;
-      border-radius: 22px;
-      border-color: rgba(var(--accent-red-rgb), 0.3);
-    }
-    .dynamic-island.state-processing {
-      width: 175px;
-      height: 38px;
-      border-radius: 22px;
-      border-color: rgba(var(--accent-purple-rgb), 0.3);
+    .glass-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(0, 243, 255, 0.35);
+      box-shadow: 0 12px 40px 0 rgba(0, 243, 255, 0.1), inset 0 0 15px rgba(0, 243, 255, 0.1);
     }
 
-    /* Island Content Layouts */
-    .island-content {
-      display: flex;
-      align-items: center;
-      width: 100%;
-      justify-content: space-between;
-      opacity: 0;
-      transform: scale(0.9);
-      transition: all 0.3s ease;
-      display: none;
-    }
-
-    .island-content.active {
-      display: flex;
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    .island-left {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-weight: 600;
-    }
-
-    .island-indicator-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-    .state-listening .island-indicator-dot {
-      background-color: var(--accent-blue);
-      box-shadow: 0 0 8px var(--accent-blue);
-      animation: led-blink 1.5s infinite;
-    }
-    .state-recording .island-indicator-dot {
-      background-color: var(--accent-red);
-      box-shadow: 0 0 8px var(--accent-red);
-      animation: led-blink 0.8s infinite;
-    }
-
-    /* Dynamic Island Waveform indicator */
-    .island-mini-wave {
-      display: flex;
-      align-items: center;
-      gap: 2.5px;
-      height: 12px;
-    }
-    .island-mini-wave span {
-      width: 2px;
-      height: 100%;
-      border-radius: 1px;
-      transition: background-color 0.3s;
-    }
-    .state-listening .island-mini-wave span {
-      background-color: var(--accent-blue);
-      animation: mini-bounce 0.8s ease-in-out infinite alternate;
-    }
-    .state-recording .island-mini-wave span {
-      background-color: var(--accent-red);
-      animation: mini-bounce 0.5s ease-in-out infinite alternate;
-    }
-    .island-mini-wave span:nth-child(2) { animation-delay: 0.15s; }
-    .island-mini-wave span:nth-child(3) { animation-delay: 0.3s; }
-    .island-mini-wave span:nth-child(4) { animation-delay: 0.45s; }
-
-    /* Processing micro-spinner */
-    .island-spinner {
-      width: 14px;
-      height: 14px;
-      border: 2px solid rgba(191, 90, 242, 0.2);
-      border-top-color: var(--accent-purple);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes led-blink {
-      0% { opacity: 0.4; }
-      50% { opacity: 1; }
-      100% { opacity: 0.4; }
-    }
-    @keyframes mini-bounce {
-      0% { transform: scaleY(0.2); }
-      100% { transform: scaleY(1); }
-    }
-
-    /* Main Scrollable Content Area */
+    /* Scrollable Content Area */
     .device-content {
       flex: 1;
       overflow-y: auto;
-      padding: 18px 16px 40px 16px;
+      padding: 16px 16px 110px 16px; /* High bottom padding for floating bar */
       display: flex;
       flex-direction: column;
       gap: 16px;
-      margin-top: 10px;
       scrollbar-width: none;
     }
     .device-content::-webkit-scrollbar {
       display: none;
     }
 
-    /* Top branding panel */
+    /* Top branding panel (Fixed Header) */
     .branding-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0 4px;
+      padding: 16px 20px;
+      background: rgba(8, 11, 18, 0.85);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid rgba(0, 243, 255, 0.15);
+      z-index: 90;
+      position: sticky;
+      top: 0;
     }
     .branding-title h1 {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 800;
       letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #fff 60%, rgba(255,255,255,0.6));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+      font-family: 'Outfit', sans-serif;
     }
     .branding-title p {
-      font-size: 12px;
-      color: var(--text-secondary);
-      font-weight: 500;
+      font-size: 10px;
+      color: var(--accent-cyan);
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
     }
     
     .header-btn {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--border-light);
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: rgba(12, 18, 32, 0.5);
+      border: 1px solid rgba(0, 243, 255, 0.15);
       display: flex;
       justify-content: center;
       align-items: center;
-      color: #fff;
+      color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .header-btn:hover {
+      border-color: rgba(0, 243, 255, 0.4);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 8px rgba(0, 243, 255, 0.2);
     }
     .header-btn:active {
       transform: scale(0.92);
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    /* State Segmented Control (iOS style) */
-    .segmented-control {
-      position: relative;
-      display: flex;
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
-      padding: 3px;
-      border: 0.5px solid rgba(255, 255, 255, 0.05);
-      margin-bottom: 2px;
-    }
-    .segment-btn {
-      flex: 1;
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      font-family: inherit;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 8px 0;
-      cursor: pointer;
-      z-index: 2;
-      transition: color 0.3s;
-      outline: none;
-    }
-    .segment-btn.active {
-      color: #fff;
-    }
-    .segment-indicator {
-      position: absolute;
-      top: 3px;
-      bottom: 3px;
-      left: 3px;
-      width: calc(25% - 3px);
-      background: rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(10px);
-      border-radius: 9px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-      z-index: 1;
-      transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 243, 255, 0.1);
     }
 
     /* Listening Panel Card */
@@ -473,7 +284,6 @@
       flex-direction: column;
       align-items: center;
       position: relative;
-      overflow: visible; /* Permitir que los anillos de brillo sobresalgan de la tarjeta */
     }
 
     /* Status Pill and LED inside main panel */
@@ -481,91 +291,109 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(0, 243, 255, 0.05);
+      border: 1px solid rgba(0, 243, 255, 0.15);
       padding: 6px 14px;
       border-radius: 20px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       transition: all 0.3s ease;
+      color: var(--accent-cyan);
+      text-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
     }
     
     .status-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background-color: var(--text-tertiary);
+      background-color: var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
       transition: all 0.3s ease;
     }
     
     /* Dynamic Badge states based on main status */
-    .state-idle .status-badge { color: var(--text-secondary); }
-    .state-idle .status-dot { background-color: var(--text-secondary); }
+    .state-idle .status-badge { 
+      color: var(--text-secondary); 
+      border-color: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .state-idle .status-dot { background-color: var(--text-secondary); box-shadow: none; }
     
-    .state-listening .status-badge { background: rgba(10, 132, 255, 0.1); border-color: rgba(10, 132, 255, 0.2); color: var(--accent-blue); }
-    .state-listening .status-dot { background-color: var(--accent-blue); box-shadow: 0 0 10px var(--accent-blue); }
+    .state-listening .status-badge { background: rgba(0, 243, 255, 0.08); border-color: rgba(0, 243, 255, 0.25); color: var(--accent-cyan); }
+    .state-listening .status-dot { background-color: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); }
     
-    .state-recording .status-badge { background: rgba(255, 69, 58, 0.1); border-color: rgba(255, 69, 58, 0.2); color: var(--accent-red); }
+    .state-recording .status-badge { background: rgba(255, 69, 58, 0.08); border-color: rgba(255, 69, 58, 0.25); color: var(--accent-red); }
     .state-recording .status-dot { background-color: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); animation: led-blink 1s infinite; }
     
-    .state-processing .status-badge { background: rgba(191, 90, 242, 0.1); border-color: rgba(191, 90, 242, 0.2); color: var(--accent-purple); }
+    .state-processing .status-badge { background: rgba(191, 90, 242, 0.08); border-color: rgba(191, 90, 242, 0.25); color: var(--accent-purple); }
     .state-processing .status-dot { background-color: var(--accent-purple); box-shadow: 0 0 10px var(--accent-purple); }
 
-    /* Beautiful, Realistic Mic Button */
+    /* Arc Reactor Mic Button */
     .mic-btn-wrapper {
       position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
-      margin: 25px 0 25px 0;
-      min-height: 140px; /* Asegurar espacio suficiente para los anillos de animación */
+      margin: 15px 0;
+      min-height: 150px;
+      width: 100%;
+    }
+
+    .reactor-ring-outer {
+      position: absolute;
+      width: 146px;
+      height: 146px;
+      border-radius: 50%;
+      border: 1px dashed rgba(0, 243, 255, 0.2);
+      animation: rotate-clockwise 25s linear infinite;
+      transition: all 0.5s ease;
+    }
+    .reactor-ring-middle {
+      position: absolute;
+      width: 126px;
+      height: 126px;
+      border-radius: 50%;
+      border: 1px double rgba(191, 90, 242, 0.25);
+      animation: rotate-counter-clockwise 18s linear infinite;
+      transition: all 0.5s ease;
+    }
+    .reactor-ring-inner {
+      position: absolute;
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 243, 255, 0.15);
+      box-shadow: inset 0 0 12px rgba(0, 243, 255, 0.2);
+      transition: all 0.5s ease;
     }
 
     .mic-outer-ring {
       position: absolute;
-      width: 124px;
-      height: 124px;
+      width: 110px;
+      height: 110px;
       border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(0, 243, 255, 0.15);
       pointer-events: none;
       transition: all 0.5s ease;
     }
 
-    .state-listening .mic-outer-ring {
-      animation: pulse-ring-blue 2s infinite cubic-bezier(0.215, 0.610, 0.355, 1);
-      border-color: rgba(10, 132, 255, 0.25);
+    @keyframes rotate-clockwise {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
-    .state-recording .mic-outer-ring {
-      animation: pulse-ring-red 1.3s infinite cubic-bezier(0.215, 0.610, 0.355, 1);
-      border-color: rgba(255, 69, 58, 0.25);
-    }
-    .state-processing .mic-outer-ring {
-      border: 2px dashed rgba(191, 90, 242, 0.4);
-      animation: spin 3s linear infinite;
-    }
-
-    @keyframes pulse-ring-blue {
-      0% { transform: scale(0.9); opacity: 1; box-shadow: 0 0 0 0 rgba(10, 132, 255, 0.4); }
-      70% { transform: scale(1.22); opacity: 0; box-shadow: 0 0 0 20px rgba(10, 132, 255, 0); }
-      100% { transform: scale(0.9); opacity: 0; }
-    }
-    @keyframes pulse-ring-red {
-      0% { transform: scale(0.9); opacity: 1; box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.5); }
-      70% { transform: scale(1.28); opacity: 0; box-shadow: 0 0 0 25px rgba(255, 69, 58, 0); }
-      100% { transform: scale(0.9); opacity: 0; }
-    }
-    @keyframes spin {
-      100% { transform: rotate(360deg); }
+    @keyframes rotate-counter-clockwise {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(-360deg); }
     }
 
     .mic-button {
       position: relative;
-      width: 104px;
-      height: 104px;
+      width: 96px;
+      height: 96px;
       border-radius: 50%;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: linear-gradient(135deg, rgba(12, 18, 32, 0.8) 0%, rgba(8, 11, 18, 0.9) 100%);
+      border: 1px solid rgba(0, 243, 255, 0.25);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -573,75 +401,82 @@
       z-index: 10;
       transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       box-shadow: 
-        inset 0 2px 3px rgba(255, 255, 255, 0.1),
-        0 12px 24px rgba(0, 0, 0, 0.35);
-    }
-
-    .mic-button::before {
-      content: '';
-      position: absolute;
-      inset: 8px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, rgba(24, 28, 41, 0.6) 0%, rgba(10, 12, 18, 0.8) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      z-index: -1;
-      transition: all 0.3s;
+        inset 0 2px 5px rgba(0, 243, 255, 0.15),
+        0 10px 25px rgba(0, 0, 0, 0.5);
     }
 
     .mic-button:hover {
-      transform: translateY(-2px) scale(1.02);
-      border-color: rgba(255, 255, 255, 0.25);
+      transform: scale(1.03);
+      border-color: rgba(0, 243, 255, 0.5);
       box-shadow: 
-        inset 0 2px 3px rgba(255, 255, 255, 0.15),
-        0 15px 30px rgba(0, 0, 0, 0.45);
+        inset 0 2px 8px rgba(0, 243, 255, 0.25),
+        0 15px 30px rgba(0, 243, 255, 0.15);
     }
     
     .mic-button:active {
-      transform: translateY(1px) scale(0.96);
+      transform: scale(0.96);
       box-shadow: 
-        inset 0 1px 2px rgba(0, 0, 0, 0.6),
-        0 4px 10px rgba(0, 0, 0, 0.25);
+        inset 0 2px 5px rgba(0, 0, 0, 0.6),
+        0 4px 10px rgba(0, 0, 0, 0.3);
     }
 
     .mic-icon-svg {
-      width: 38px;
-      height: 38px;
-      color: rgba(255, 255, 255, 0.9);
+      width: 32px;
+      height: 32px;
+      color: var(--text-secondary);
       transition: all 0.4s ease;
     }
 
-    /* Glow modifications for states */
+    /* Active Arc Reactor animations based on state */
+    .state-listening .reactor-ring-outer {
+      border-color: rgba(0, 243, 255, 0.5);
+      animation-duration: 10s;
+    }
+    .state-listening .reactor-ring-middle {
+      border-color: rgba(191, 90, 242, 0.5);
+      animation-duration: 8s;
+    }
     .state-listening .mic-button {
-      border-color: rgba(10, 132, 255, 0.6);
-      box-shadow: 
-        0 0 30px rgba(10, 132, 255, 0.25),
-        inset 0 2px 5px rgba(255, 255, 255, 0.15);
+      border-color: #00f3ff;
+      box-shadow: 0 0 30px rgba(0, 243, 255, 0.35), inset 0 0 15px rgba(0, 243, 255, 0.25);
     }
     .state-listening .mic-icon-svg {
-      color: var(--accent-blue);
-      filter: drop-shadow(0 0 8px rgba(10, 132, 255, 0.6));
+      color: #00f3ff;
+      filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.8));
     }
 
-    .state-recording .mic-button {
+    .state-recording .reactor-ring-outer {
       border-color: rgba(255, 69, 58, 0.6);
-      box-shadow: 
-        0 0 35px rgba(255, 69, 58, 0.3),
-        inset 0 2px 5px rgba(255, 255, 255, 0.15);
+      animation-duration: 5s;
+    }
+    .state-recording .reactor-ring-middle {
+      border-color: rgba(255, 159, 10, 0.6);
+      animation-duration: 4s;
+    }
+    .state-recording .mic-button {
+      border-color: #FF453A;
+      box-shadow: 0 0 35px rgba(255, 69, 58, 0.45), inset 0 0 15px rgba(255, 69, 58, 0.35);
     }
     .state-recording .mic-icon-svg {
-      color: var(--accent-red);
-      filter: drop-shadow(0 0 8px rgba(255, 69, 58, 0.6));
+      color: #FF453A;
+      filter: drop-shadow(0 0 8px rgba(255, 69, 58, 0.8));
     }
 
-    .state-processing .mic-button {
+    .state-processing .reactor-ring-outer {
       border-color: rgba(191, 90, 242, 0.6);
-      box-shadow: 
-        0 0 30px rgba(191, 90, 242, 0.25),
-        inset 0 2px 5px rgba(255, 255, 255, 0.15);
+      animation-duration: 3s;
+    }
+    .state-processing .reactor-ring-middle {
+      border-color: rgba(0, 243, 255, 0.6);
+      animation-duration: 2s;
+    }
+    .state-processing .mic-button {
+      border-color: #BF5AF2;
+      box-shadow: 0 0 30px rgba(191, 90, 242, 0.35), inset 0 0 15px rgba(191, 90, 242, 0.25);
     }
     .state-processing .mic-icon-svg {
-      color: var(--accent-purple);
-      filter: drop-shadow(0 0 8px rgba(191, 90, 242, 0.6));
+      color: #BF5AF2;
+      filter: drop-shadow(0 0 8px rgba(191, 90, 242, 0.8));
     }
 
     /* Wake Word Status Tag */
@@ -652,10 +487,10 @@
       font-size: 11px;
       font-weight: 600;
       color: var(--text-secondary);
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(0, 243, 255, 0.04);
       padding: 4px 10px;
       border-radius: 12px;
-      border: 0.5px solid rgba(255, 255, 255, 0.04);
+      border: 0.5px solid rgba(0, 243, 255, 0.1);
       margin-bottom: 5px;
     }
     .wake-word-pill svg {
@@ -667,11 +502,13 @@
     /* Waveform Visualizer Canvas */
     .visualizer-container {
       width: 100%;
-      height: 70px;
+      height: 60px;
       margin-top: 10px;
       position: relative;
-      border-radius: 16px;
+      border-radius: 12px;
       overflow: hidden;
+      border: 1px solid rgba(0, 243, 255, 0.08);
+      background: rgba(8, 11, 18, 0.3);
     }
     #waveCanvas {
       width: 100%;
@@ -679,41 +516,48 @@
       display: block;
     }
 
-    /* Grid Layout for controls */
+    /* Grid Layout for controls (Strict bounds) */
     .controls-grid {
       display: grid;
       grid-template-columns: 1.1fr 0.9fr;
       gap: 14px;
     }
 
-    /* Media Automator Panel */
+    /* Media Player Box (Fixed height layout prevents breaking) */
     .media-card {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       min-width: 0;
+      height: 140px; /* STRICT height bound */
+      max-height: 140px;
+      overflow: hidden;
+      padding: 12px 14px;
     }
     
     .media-card-title {
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 800;
-      color: var(--text-tertiary);
+      color: var(--accent-cyan);
       letter-spacing: 0.8px;
       text-transform: uppercase;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
+      text-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
     }
     
     .media-info {
-      margin-bottom: 12px;
+      margin-bottom: 4px;
+      min-width: 0;
     }
     
     .media-info h2 {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 700;
       letter-spacing: -0.3px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      color: #fff;
     }
     .media-info p {
       font-size: 11px;
@@ -728,54 +572,59 @@
       justify-content: space-between;
       align-items: center;
       margin-top: auto;
+      gap: 8px;
     }
     
     .media-btn {
-      width: 38px;
-      height: 38px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.03);
+      background: rgba(12, 18, 32, 0.6);
+      border: 1px solid rgba(0, 243, 255, 0.15);
       display: flex;
       justify-content: center;
       align-items: center;
-      color: #fff;
+      color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     
     .media-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.1);
+      background: rgba(0, 243, 255, 0.1);
+      border-color: rgba(0, 243, 255, 0.4);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 8px rgba(0, 243, 255, 0.2);
     }
     
     .media-btn:active {
       transform: scale(0.9);
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(0, 243, 255, 0.2);
     }
     
     .media-btn svg {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       fill: currentColor;
     }
 
     .media-btn.play-btn {
-      width: 46px;
-      height: 46px;
-      background: #fff;
-      color: #000;
+      width: 38px;
+      height: 38px;
+      background: var(--accent-cyan);
+      color: #080b12;
+      border: none;
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);
     }
     .media-btn.play-btn:hover {
-      background: rgba(255,255,255,0.9);
+      background: #ffffff;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.5);
     }
     
     .media-btn.play-btn svg {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
     }
 
-    /* Dynamic Play/Pause state */
     .media-btn.play-btn .pause-icon {
       display: none;
     }
@@ -786,16 +635,17 @@
       display: block;
     }
 
-    /* iOS 18 Control Center Dual Vertical Sliders */
+    /* iOS 18 Control Center Sliders in HUD (Fixed heights) */
     .sliders-panel {
       display: flex;
       justify-content: space-between;
-      gap: 14px;
-      padding: 12px;
+      gap: 12px;
+      padding: 10px;
       background: var(--bg-card);
-      border-radius: 24px;
+      border-radius: 20px;
       border: 1px solid var(--border-light);
       min-width: 0;
+      height: 140px; /* MATCHES media-card height */
     }
 
     .cc-slider-wrapper {
@@ -804,25 +654,33 @@
       flex-direction: column;
       align-items: center;
       min-width: 0;
+      height: 100%;
+      justify-content: space-between;
     }
 
     .cc-vertical-slider {
       position: relative;
       width: 100%;
-      height: 110px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 18px;
+      height: 90px; /* Fixed height for vertical control */
+      background: rgba(12, 18, 32, 0.6);
+      border-radius: 12px;
       overflow: hidden;
       cursor: ns-resize;
-      border: 1px solid rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(0, 243, 255, 0.1);
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
       align-items: center;
-      padding-bottom: 12px;
+      padding-bottom: 8px;
       box-sizing: border-box;
       touch-action: none;
       backdrop-filter: blur(10px);
+      transition: all 0.2s;
+    }
+
+    .cc-vertical-slider:hover {
+      border-color: rgba(0, 243, 255, 0.35);
+      box-shadow: 0 0 8px rgba(0, 243, 255, 0.1);
     }
 
     .cc-slider-fill {
@@ -830,14 +688,12 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 70%; /* dynamic */
-      background: rgba(255, 255, 255, 0.18);
+      background: rgba(0, 243, 255, 0.2);
       z-index: 1;
       transition: height 0.05s linear;
       pointer-events: none;
     }
 
-    /* Slider accent colors */
     #gain-vertical-slider .cc-slider-fill {
       background: rgba(191, 90, 242, 0.25);
     }
@@ -845,10 +701,10 @@
     .cc-slider-icon {
       position: relative;
       z-index: 2;
-      width: 20px;
-      height: 20px;
+      width: 16px;
+      height: 16px;
       color: #fff;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
       opacity: 0.8;
       pointer-events: none;
     }
@@ -859,19 +715,18 @@
     }
 
     .cc-slider-label {
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 800;
-      color: var(--text-tertiary);
-      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      letter-spacing: 0.8px;
       text-transform: uppercase;
-      margin-top: 6px;
       text-align: center;
     }
 
     .cc-slider-value {
       position: relative;
       z-index: 2;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 700;
       color: #fff;
       opacity: 0.9;
@@ -889,10 +744,11 @@
     .ops-header {
       font-size: 10px;
       font-weight: 800;
-      color: var(--text-tertiary);
+      color: var(--accent-cyan);
       letter-spacing: 0.8px;
       text-transform: uppercase;
       margin-bottom: 2px;
+      text-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
     }
 
     .ops-row {
@@ -902,10 +758,10 @@
     }
 
     .action-button {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.03);
+      background: rgba(12, 18, 32, 0.5);
+      border: 1px solid rgba(0, 243, 255, 0.15);
       padding: 12px 10px;
-      border-radius: 16px;
+      border-radius: 14px;
       color: #fff;
       font-family: inherit;
       font-size: 12px;
@@ -915,32 +771,35 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      transition: all 0.2s;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .action-button:hover {
-      background: rgba(255, 255, 255, 0.09);
-      border-color: rgba(255, 255, 255, 0.1);
+      background: rgba(0, 243, 255, 0.08);
+      border-color: rgba(0, 243, 255, 0.35);
+      box-shadow: 0 0 8px rgba(0, 243, 255, 0.15);
     }
     .action-button:active {
       transform: scale(0.96);
     }
     .action-button.active {
       background: rgba(255, 159, 10, 0.15);
-      border-color: rgba(255, 159, 10, 0.3);
+      border-color: rgba(255, 159, 10, 0.4);
       color: var(--accent-orange);
+      box-shadow: 0 0 10px rgba(255, 159, 10, 0.2);
     }
     
     .action-button.fullscreen-active {
-      background: rgba(10, 132, 255, 0.15);
-      border-color: rgba(10, 132, 255, 0.3);
-      color: var(--accent-blue);
+      background: rgba(0, 243, 255, 0.15);
+      border-color: rgba(0, 243, 255, 0.4);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.25);
     }
 
     .action-button svg {
       width: 15px;
       height: 15px;
-      stroke-width: 2.5;
+      stroke-width: 2.2;
     }
 
     /* Sensitivity Horizontal Control inside Dashboard */
@@ -967,16 +826,16 @@
     .slider-label-left svg {
       width: 13px;
       height: 13px;
-      color: var(--text-tertiary);
+      color: var(--text-secondary);
     }
 
-    /* Custom native range slider */
+    /* Custom range slider */
     .ios-range {
       -webkit-appearance: none;
       width: 100%;
       height: 6px;
       border-radius: 3px;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(0, 243, 255, 0.12);
       outline: none;
     }
     
@@ -985,10 +844,384 @@
       width: 18px;
       height: 18px;
       border-radius: 50%;
-      background: #ffffff;
+      background: var(--accent-cyan);
       cursor: pointer;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-      border: 0.5px solid rgba(0,0,0,0.1);
+      box-shadow: 0 0 8px var(--accent-cyan);
+      border: 0.5px solid #fff;
+      transition: transform 0.1s;
+    }
+    .ios-range::-webkit-slider-thumb:active {
+      transform: scale(1.2);
+    }
+
+    /* Floating Navigation Bar at the Bottom */
+    .floating-nav-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 16px;
+      right: 16px;
+      height: 64px;
+      background: rgba(8, 11, 18, 0.85);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      border-radius: 20px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 243, 255, 0.1);
+      z-index: 100;
+    }
+
+    .nav-item {
+      background: none;
+      border: none;
+      outline: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      flex: 1;
+      height: 100%;
+    }
+
+    .nav-item svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 2.2;
+      transition: transform 0.3s, color 0.3s;
+    }
+
+    .nav-item.active {
+      color: var(--accent-cyan);
+      text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+    }
+
+    .nav-item.active svg {
+      transform: scale(1.1) translateY(-2px);
+      filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.6));
+    }
+
+    /* Tab Switch Panels styling */
+    .tab-panel {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+      animation: fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .tab-panel.active {
+      display: flex;
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Telemetry health tab elements */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .telemetry-card {
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .telemetry-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      letter-spacing: 0.8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: uppercase;
+    }
+
+    .tel-icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    .telemetry-body {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: space-between;
+    }
+
+    .gauge-container {
+      width: 58px;
+      height: 58px;
+      flex-shrink: 0;
+    }
+
+    .circular-chart {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    .circle-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.04);
+      stroke-width: 2.8;
+    }
+
+    .circle {
+      fill: none;
+      stroke-width: 2.8;
+      stroke-linecap: round;
+      transition: stroke-dasharray 0.5s ease-in-out;
+    }
+
+    .percentage {
+      fill: #fff;
+      font-family: 'SF Pro Display', sans-serif;
+      font-size: 8.5px;
+      font-weight: 700;
+      text-anchor: middle;
+    }
+
+    .telemetry-details {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 10px;
+      color: var(--text-secondary);
+      min-width: 0;
+      flex: 1;
+    }
+
+    .tel-detail-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .cyan-glow { color: var(--accent-cyan); text-shadow: 0 0 5px rgba(0, 243, 255, 0.5); }
+    .purple-glow { color: var(--accent-purple); text-shadow: 0 0 5px rgba(191, 90, 242, 0.5); }
+    .orange-glow { color: var(--accent-orange); text-shadow: 0 0 5px rgba(255, 159, 10, 0.5); }
+    .green-glow { color: var(--accent-green); text-shadow: 0 0 5px rgba(48, 209, 88, 0.5); }
+    .red-glow { color: var(--accent-red); text-shadow: 0 0 5px rgba(255, 69, 58, 0.5); }
+
+    .telemetry-extra {
+      display: flex;
+      flex-direction: column;
+      padding: 12px 16px;
+      gap: 8px;
+    }
+
+    .extra-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Macro deck grid */
+    .macro-deck-header, .console-header {
+      padding: 4px 4px 0 4px;
+    }
+    .macro-deck-title, .console-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
+    }
+    .macro-deck-header p, .console-header p {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .macro-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .macro-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      outline: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .macro-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 6px;
+      height: 6px;
+      border-top: 1.5px solid rgba(0, 243, 255, 0.4);
+      border-left: 1.5px solid rgba(0, 243, 255, 0.4);
+      pointer-events: none;
+    }
+
+    .macro-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(0, 243, 255, 0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 243, 255, 0.1), 0 0 10px rgba(0, 243, 255, 0.1);
+    }
+
+    .macro-btn:active {
+      transform: translateY(1px);
+      background: rgba(0, 243, 255, 0.1);
+    }
+
+    .macro-btn-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.04);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+
+    .macro-btn:hover .macro-btn-icon {
+      background: rgba(0, 243, 255, 0.12);
+      color: var(--accent-cyan);
+    }
+
+    .macro-btn span {
+      font-size: 10px;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.25;
+      color: var(--text-secondary);
+    }
+    .macro-btn:hover span {
+      color: #fff;
+    }
+
+    /* Console logs logs-tab */
+    .console-container {
+      background: #020408;
+      border: 1px solid rgba(0, 243, 255, 0.25);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      height: 380px;
+    }
+    
+    .console-top-bar {
+      background: rgba(12, 18, 32, 0.85);
+      border-bottom: 1px solid rgba(0, 243, 255, 0.15);
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .console-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .console-dots .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .console-dots .dot.red { background-color: #ff453a; }
+    .console-dots .dot.yellow { background-color: #ff9f0a; }
+    .console-dots .dot.green { background-color: #30d158; }
+    
+    .console-tab-name {
+      font-family: 'SF Mono', 'Consolas', monospace;
+      font-size: 10px;
+      color: var(--text-secondary);
+      letter-spacing: 0.5px;
+    }
+    
+    .console-body {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      font-family: 'SF Mono', 'Consolas', monospace;
+      font-size: 10px;
+      line-height: 1.4;
+      color: var(--accent-cyan);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 243, 255, 0.2) transparent;
+    }
+    .console-body::-webkit-scrollbar {
+      width: 4px;
+    }
+    .console-body::-webkit-scrollbar-thumb {
+      background: rgba(0, 243, 255, 0.2);
+      border-radius: 2px;
+    }
+    
+    .log-line {
+      word-break: break-all;
+      text-shadow: 0 0 3px rgba(0, 243, 255, 0.25);
+    }
+    .log-time {
+      color: rgba(0, 243, 255, 0.55);
+      margin-right: 4px;
+    }
+    .log-warn {
+      color: #ff9f0a;
+      text-shadow: 0 0 3px rgba(255, 159, 10, 0.25);
+    }
+    .log-warn .log-time {
+      color: rgba(255, 159, 10, 0.55);
+    }
+    .log-error {
+      color: #ff453a;
+      text-shadow: 0 0 3px rgba(255, 69, 58, 0.25);
+    }
+    .log-error .log-time {
+      color: rgba(255, 69, 58, 0.55);
     }
 
     /* Settings Slide-up Drawer */
@@ -998,9 +1231,9 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       z-index: 150;
       opacity: 0;
       pointer-events: none;
@@ -1019,15 +1252,16 @@
       width: 100%;
       max-width: 480px;
       max-height: 80%;
-      background: rgba(20, 24, 38, 0.94);
+      background: rgba(12, 18, 32, 0.96);
       backdrop-filter: blur(40px);
       -webkit-backdrop-filter: blur(40px);
       border-radius: 30px 30px 0 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      border-top: 1px solid rgba(0, 243, 255, 0.25);
       z-index: 160;
       transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
       padding: 12px 20px 32px 20px;
       overflow-y: auto;
+      box-shadow: 0 -10px 40px rgba(0, 243, 255, 0.15);
     }
     .settings-drawer.active {
       transform: translate(-50%, 0);
@@ -1036,7 +1270,7 @@
     .drawer-handle {
       width: 36px;
       height: 5px;
-      background: rgba(255, 255, 255, 0.25);
+      background: rgba(0, 243, 255, 0.25);
       border-radius: 3px;
       margin: 0 auto 18px auto;
       cursor: pointer;
@@ -1051,15 +1285,18 @@
     .drawer-header h3 {
       font-size: 18px;
       font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
     }
     .drawer-close {
       background: none;
       border: none;
-      color: var(--accent-blue);
+      color: var(--accent-cyan);
       font-family: inherit;
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
+      text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
     }
 
     .control-row {
@@ -1077,29 +1314,31 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      color: #fff;
     }
     .helper-text {
       font-size: 11px;
-      color: var(--text-tertiary);
+      color: var(--text-secondary);
       display: block;
       margin-top: 4px;
       line-height: 1.3;
     }
 
     .value-badge {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(0, 243, 255, 0.1);
+      border: 1px solid rgba(0, 243, 255, 0.2);
       padding: 3px 8px;
       border-radius: 6px;
       font-size: 11px;
       font-weight: 700;
-      color: var(--text-secondary);
+      color: var(--accent-cyan);
     }
 
     /* iOS selection menu styling */
     .ios-select {
       width: 100%;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--border-light);
+      background: rgba(8, 11, 18, 0.6);
+      border: 1px solid rgba(0, 243, 255, 0.2);
       border-radius: 12px;
       color: #fff;
       padding: 10px 12px;
@@ -1108,6 +1347,10 @@
       outline: none;
       margin-top: 6px;
       cursor: pointer;
+    }
+    .ios-select option {
+      background-color: #0c1220;
+      color: #fff;
     }
 
     /* Toggle switches rows */
@@ -1174,11 +1417,6 @@
       transform: translateX(20px);
     }
 
-    /* Ocultar la barra del home indicator de iOS */
-    .home-indicator-container {
-      display: none !important;
-    }
-
     /* Access Locked Overlay style */
     .lock-screen-overlay {
       position: absolute;
@@ -1186,7 +1424,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(5, 7, 12, 0.85);
+      background: rgba(5, 7, 12, 0.9);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
       z-index: 2000;
@@ -1251,8 +1489,8 @@
     }
     
     .lock-pin-btn {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 243, 255, 0.08);
+      border: 1px solid rgba(0, 243, 255, 0.2);
       color: #fff;
       padding: 10px 20px;
       border-radius: 12px;
@@ -1265,7 +1503,7 @@
     }
     .lock-pin-btn:active {
       transform: scale(0.96);
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(0, 243, 255, 0.15);
     }
     .lock-pin-container {
       display: flex;
@@ -1278,8 +1516,8 @@
     }
     .lock-pin-input {
       flex: 1;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(8, 11, 18, 0.6);
+      border: 1px solid rgba(0, 243, 255, 0.2);
       border-radius: 12px;
       padding: 10px 14px;
       color: #fff;
@@ -1297,13 +1535,14 @@
       color: var(--text-tertiary);
     }
     .lock-pin-input:focus {
-      border-color: var(--accent-blue);
-      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--accent-cyan);
+      background: rgba(0, 243, 255, 0.05);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
     }
     .lock-submit-btn {
-      background: var(--accent-blue);
+      background: var(--accent-cyan);
       border: none;
-      color: #fff;
+      color: #080b12;
       padding: 10px 16px;
       border-radius: 12px;
       font-family: inherit;
@@ -1311,6 +1550,7 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);
     }
     .lock-submit-btn:active {
       transform: scale(0.96);
@@ -1320,14 +1560,22 @@
     .lock-divider {
       width: 60px;
       height: 1px;
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(0, 243, 255, 0.15);
       margin-bottom: 30px;
     }
     
     .lock-footer svg {
       width: 12px;
       height: 12px;
-      color: var(--text-tertiary);
+      color: var(--accent-cyan);
+      margin-right: 4px;
+    }
+    .lock-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--text-secondary);
     }
 
     /* Automations Creator styles */
@@ -1341,12 +1589,12 @@
       width: 4px;
     }
     .automations-list::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(0, 243, 255, 0.15);
       border-radius: 2px;
     }
     .auto-item {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(12, 18, 32, 0.5);
+      border: 1px solid rgba(0, 243, 255, 0.15);
       border-radius: 16px;
       padding: 14px 16px;
       margin-bottom: 12px;
@@ -1355,10 +1603,22 @@
       gap: 8px;
       transition: all 0.2s ease;
       text-align: left;
+      position: relative;
+    }
+    .auto-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 6px;
+      height: 6px;
+      border-top: 1.5px solid var(--accent-cyan);
+      border-left: 1.5px solid var(--accent-cyan);
+      pointer-events: none;
     }
     .auto-item:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 255, 255, 0.08);
+      background: rgba(12, 18, 32, 0.7);
+      border-color: rgba(0, 243, 255, 0.3);
     }
     .auto-item-header {
       display: flex;
@@ -1378,9 +1638,9 @@
       text-transform: uppercase;
       padding: 3px 6px;
       border-radius: 6px;
-      background: rgba(10, 132, 255, 0.12);
-      color: var(--accent-blue);
-      border: 0.5px solid rgba(10, 132, 255, 0.25);
+      background: rgba(0, 243, 255, 0.1);
+      color: var(--accent-cyan);
+      border: 0.5px solid rgba(0, 243, 255, 0.25);
     }
     .auto-item-detail {
       font-size: 12px;
@@ -1392,7 +1652,7 @@
       background: rgba(0, 0, 0, 0.2);
       padding: 6px 10px;
       border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(0, 243, 255, 0.08);
     }
     .auto-tags-container {
       display: flex;
@@ -1405,12 +1665,12 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 243, 255, 0.05);
+      border: 1px solid rgba(0, 243, 255, 0.15);
       border-radius: 8px;
       padding: 4px 10px;
       font-size: 11px;
-      color: var(--text-secondary);
+      color: var(--accent-cyan);
     }
     .auto-tag-delete {
       cursor: pointer;
@@ -1428,7 +1688,7 @@
       justify-content: flex-end;
       gap: 8px;
       margin-top: 4px;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-top: 1px solid rgba(0, 243, 255, 0.1);
       padding-top: 8px;
     }
     .auto-action-btn {
@@ -1460,6 +1720,12 @@
       transform: scale(0.95);
       background: rgba(255, 69, 58, 0.2);
     }
+
+    @keyframes led-blink {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
   </style>
 </head>
 <body>
@@ -1468,221 +1734,551 @@
   <div class="bg-glow-1"></div>
   <div class="bg-glow-2"></div>
 
-  <!-- Physical Bezel Device Wrapper -->
+  <!-- Bezel Device Wrapper -->
   <div class="device-frame">
     
-    <!-- Elements removed (iOS Status Bar and Dynamic Island) -->
+    <!-- Top Branding Line (Fixed Header) -->
+    <div class="branding-row">
+      <div class="branding-title">
+        <h1>Viernes Control</h1>
+        <p>STARK HUD INTERFACE</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <!-- Automations Layers Button -->
+        <button class="header-btn" id="automations-trigger" aria-label="Automations" title="Automatizaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+            <polyline points="2 17 12 22 22 17"/>
+            <polyline points="2 12 12 17 22 12"/>
+          </svg>
+        </button>
+        <!-- Settings Gear button -->
+        <button class="header-btn" id="settings-trigger" aria-label="Settings">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
 
     <!-- Scrollable device container -->
     <div class="device-content" id="scroll-content">
       
-      <!-- Top Branding Line -->
-      <div class="branding-row">
-        <div class="branding-title">
-          <h1>Viernes Control</h1>
-          <p>Local Assistant Voice Bridge</p>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <!-- Automations Layers Button -->
-          <button class="header-btn" id="automations-trigger" aria-label="Automations" title="Automatizaciones">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-              <polyline points="2 17 12 22 22 17"/>
-              <polyline points="2 12 12 17 22 12"/>
-            </svg>
-          </button>
-          <!-- Settings Gear button -->
-          <button class="header-btn" id="settings-trigger" aria-label="Settings">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-
-
-      <!-- Main Glassmorphic Panel (Listening / Waveform) -->
-      <div class="glass-card listening-panel state-idle" id="main-listening-card">
+      <!-- ==================== TAB 1: HUD ==================== -->
+      <div id="hud-tab" class="tab-panel active">
         
-        <!-- Status Pill -->
-        <div class="status-badge">
-          <span class="status-dot"></span>
-          <span id="main-status-label">System Idle</span>
-        </div>
+        <!-- Main Glassmorphic Panel (Listening / Waveform) -->
+        <div class="glass-card listening-panel state-idle" id="main-listening-card">
+          
+          <!-- Status Pill -->
+          <div class="status-badge">
+            <span class="status-dot"></span>
+            <span id="main-status-label">System Idle</span>
+          </div>
 
-        <!-- Wake Word Armed Status -->
-        <div class="wake-word-pill">
-          <!-- Sparkles Inline SVG -->
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-          </svg>
-          <span>Wake Word Active: "viernes"</span>
-        </div>
-
-        <!-- Microphone Main Trigger Button -->
-        <div class="mic-btn-wrapper">
-          <div class="mic-outer-ring"></div>
-          <button class="mic-button" id="mic-trigger-btn" aria-label="Toggle Microphone Input">
-            <!-- Professional Mic outline SVG -->
-            <svg class="mic-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-              <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
-              <line x1="12" x2="12" y1="19" y2="22"/>
+          <!-- Wake Word Armed Status -->
+          <div class="wake-word-pill">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
             </svg>
-          </button>
+            <span>Wake Word Activo: "viernes"</span>
+          </div>
+
+          <!-- Microphone Arc Reactor Trigger Button -->
+          <div class="mic-btn-wrapper">
+            <div class="reactor-ring-outer"></div>
+            <div class="reactor-ring-middle"></div>
+            <div class="reactor-ring-inner"></div>
+            <div class="mic-outer-ring"></div>
+            <button class="mic-button" id="mic-trigger-btn" aria-label="Toggle Microphone Input">
+              <svg class="mic-icon-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width: 36px; height: 36px; fill: none; stroke: currentColor; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round;">
+                <!-- Outer Triangle (pointing down) -->
+                <polygon points="50,85 10,20 90,20" style="stroke-dasharray: 6, 3;" />
+                <!-- Inner Triangle -->
+                <polygon points="50,68 25,28 75,28" />
+                <!-- Center Core Circle -->
+                <circle cx="50" cy="42" r="10" style="fill: currentColor; stroke: none;" />
+                <!-- Three connecting radiating lines -->
+                <line x1="50" y1="85" x2="50" y2="68" />
+                <line x1="10" y1="20" x2="25" y2="28" />
+                <line x1="90" y1="20" x2="75" y2="28" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Siri-like wave canvas visualizer -->
+          <div class="visualizer-container">
+            <canvas id="waveCanvas"></canvas>
+          </div>
+
         </div>
 
-        <!-- Siri-like wave canvas visualizer -->
-        <div class="visualizer-container">
-          <canvas id="waveCanvas"></canvas>
-        </div>
-
-      </div>
-
-      <!-- Controls Dashboard Section -->
-      <div class="controls-grid">
-        
-        <!-- Media controller (System Music Automator) -->
-        <div class="glass-card media-card">
-          <div>
-            <div class="media-card-title">Automating</div>
-            <div class="media-info">
-              <h2 id="media-track-title">Linux Desktop</h2>
-              <p id="media-track-artist">System Audio Master</p>
-            </div>
-            <!-- Progress Bar -->
-            <div class="media-progress-container" style="margin: 10px 0 6px 0; display: none;" id="media-progress-block">
-              <div class="media-progress-bar-bg" style="width: 100%; height: 4px; background: rgba(255, 255, 255, 0.15); border-radius: 2px; overflow: hidden; position: relative;" id="media-progress-bar">
-                <div class="media-progress-fill" style="width: 0%; height: 100%; background: #ffffff; border-radius: 2px;" id="media-progress-fill"></div>
+        <!-- Controls Dashboard Section -->
+        <div class="controls-grid">
+          
+          <!-- Media controller (System Music Automator) -->
+          <div class="glass-card media-card">
+            <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
+              <div class="media-info">
+                <h2 id="media-track-title">Linux Desktop</h2>
+                <p id="media-track-artist">System Audio Master</p>
               </div>
-              <div class="media-time-row" style="display: flex; justify-content: space-between; font-size: 9px; color: rgba(255,255,255,0.5); margin-top: 4px; font-weight: 500;">
-                <span id="media-time-current">0:00</span>
-                <span id="media-time-total">0:00</span>
+              <!-- Progress Bar -->
+              <div class="media-progress-container" style="margin: 6px 0 2px 0; display: none;" id="media-progress-block">
+                <div class="media-progress-bar-bg" style="width: 100%; height: 4px; background: rgba(255, 255, 255, 0.15); border-radius: 2px; overflow: hidden; position: relative;" id="media-progress-bar">
+                  <div class="media-progress-fill" style="width: 0%; height: 100%; background: var(--accent-cyan); border-radius: 2px;" id="media-progress-fill"></div>
+                </div>
+                <div class="media-time-row" style="display: flex; justify-content: space-between; font-size: 8px; color: rgba(255,255,255,0.5); margin-top: 3px; font-weight: 500;">
+                  <span id="media-time-current">0:00</span>
+                  <span id="media-time-total">0:00</span>
+                </div>
+              </div>
+              <!-- FFT Audio Spectrum Canvas -->
+              <div class="media-fft-container" id="media-fft-block" style="margin-top: 6px; height: 18px; width: 100%; display: none; overflow: hidden;">
+                <canvas id="mediaFftCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
+              </div>
+            </div>
+
+            <div class="media-buttons">
+              <button class="media-btn" id="media-prev" aria-label="Previous Track">
+                <svg viewBox="0 0 24 24">
+                  <polygon points="19 20 9 12 19 4 19 20"/>
+                  <rect x="5" y="4" width="2" height="16"/>
+                </svg>
+              </button>
+              <button class="media-btn play-btn" id="media-play-pause" aria-label="Play or Pause">
+                <svg class="play-icon" viewBox="0 0 24 24">
+                  <polygon points="8 5 19 12 8 19 8 5"/>
+                </svg>
+                <svg class="pause-icon" viewBox="0 0 24 24">
+                  <rect x="6" y="4" width="4" height="16" rx="1"/>
+                  <rect x="14" y="4" width="4" height="16" rx="1"/>
+                </svg>
+              </button>
+              <button class="media-btn" id="media-next" aria-label="Next Track">
+                <svg viewBox="0 0 24 24">
+                  <polygon points="5 4 15 12 5 20 5 4"/>
+                  <rect x="17" y="4" width="2" height="16"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- iOS 18 Control Center Dual Vertical Sliders (Volume & Gain) -->
+          <div class="sliders-panel">
+            
+            <!-- Volume Vertical Slider -->
+            <div class="cc-slider-wrapper">
+              <div class="cc-vertical-slider" id="volume-vertical-slider">
+                <div class="cc-slider-fill" id="volume-vertical-fill" style="height: 70%;"></div>
+                <div class="cc-slider-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                  </svg>
+                </div>
+                <span class="cc-slider-value" id="volume-vertical-value">70%</span>
+              </div>
+              <div class="cc-slider-label">Volumen</div>
+            </div>
+
+            <!-- Digital Gain Vertical Slider -->
+            <div class="cc-slider-wrapper">
+              <div class="cc-vertical-slider" id="gain-vertical-slider">
+                <div class="cc-slider-fill" id="gain-vertical-fill" style="height: 25%;"></div>
+                <div class="cc-slider-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                </div>
+                <span class="cc-slider-value" id="gain-vertical-value">+6dB</span>
+              </div>
+              <div class="cc-slider-label">Ganancia</div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Operations Panel (Fullscreen / Cinema Mode / Sensitivity Slider) -->
+        <div class="glass-card system-ops-card">
+          <div class="ops-header">Sensibilidad del Micrófono (Noise Gate)</div>
+          
+          <div class="ops-row" style="display: none;">
+            <!-- Cinema Mode Trigger -->
+            <button class="action-button" id="cinema-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M2 7l4-4h12l4 4"/>
+                <path d="M2 11h20"/>
+                <path d="M7 3l-3 4M12 3l-3 4M17 3l-3 4"/>
+              </svg>
+              <span>Modo Cine</span>
+            </button>
+            
+            <!-- Fullscreen Trigger -->
+            <button class="action-button" id="fullscreen-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+              </svg>
+              <span>Pantalla Completa</span>
+            </button>
+          </div>
+
+          <!-- Sensitivity / Noise Gate threshold slider -->
+          <div class="slider-row">
+            <div class="slider-label-row">
+              <span class="slider-label-left">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="4" x2="4" y1="21" y2="14"/>
+                  <line x1="4" x2="4" y1="10" y2="3"/>
+                  <line x1="12" x2="12" y1="21" y2="12"/>
+                  <line x1="12" x2="12" y1="8" y2="3"/>
+                  <line x1="20" x2="20" y1="21" y2="16"/>
+                  <line x1="20" x2="20" y1="12" y2="3"/>
+                  <line x1="2" x2="6" y1="14" y2="14"/>
+                  <line x1="10" x2="14" y1="8" y2="8"/>
+                  <line x1="18" x2="22" y1="16" y2="16"/>
+                </svg>
+                Noise Gate Threshold (Filtro Ruido)
+              </span>
+              <span class="value-badge" id="sensitivity-dash-badge">-35 dB</span>
+            </div>
+            <input type="range" min="-60" max="-10" value="-35" class="ios-range" id="sensitivity-dash-slider">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==================== TAB 2: TELEMETRY ==================== -->
+      <div id="telemetry-tab" class="tab-panel">
+        <div class="telemetry-grid">
+          
+          <!-- CPU CARD -->
+          <div class="glass-card telemetry-card">
+            <div class="telemetry-title">
+              <svg class="tel-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                <rect x="9" y="9" width="6" height="6"/>
+                <line x1="9" y1="1" x2="9" y2="4"/>
+                <line x1="15" y1="1" x2="15" y2="4"/>
+                <line x1="9" y1="20" x2="9" y2="23"/>
+                <line x1="15" y1="20" x2="15" y2="23"/>
+                <line x1="20" y1="9" x2="23" y2="9"/>
+                <line x1="20" y1="15" x2="23" y2="15"/>
+                <line x1="1" y1="9" x2="4" y2="9"/>
+                <line x1="1" y1="15" x2="4" y2="15"/>
+              </svg>
+              CPU CORE
+            </div>
+            <div class="telemetry-body">
+              <div class="gauge-container">
+                <svg viewBox="0 0 36 36" class="circular-chart">
+                  <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path id="cpu-gauge-fill" class="circle" stroke-dasharray="24, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" stroke="#00f3ff" />
+                  <text x="18" y="20.35" class="percentage" id="cpu-text">24%</text>
+                </svg>
+              </div>
+              <div class="telemetry-details">
+                <div class="tel-detail-row"><span>Temp:</span> <span class="cyan-glow">42°C</span></div>
+                <div class="tel-detail-row"><span>Clock:</span> <span>3.8 GHz</span></div>
               </div>
             </div>
           </div>
 
-          <div class="media-buttons">
-            <button class="media-btn" id="media-prev" aria-label="Previous Track">
-              <svg viewBox="0 0 24 24">
-                <polygon points="19 20 9 12 19 4 19 20"/>
-                <rect x="5" y="4" width="2" height="16"/>
+          <!-- RAM CARD -->
+          <div class="glass-card telemetry-card">
+            <div class="telemetry-title">
+              <svg class="tel-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 19a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H6z"/>
+                <line x1="6" y1="11" x2="6" y2="11.01"/>
+                <line x1="10" y1="11" x2="10" y2="11.01"/>
+                <line x1="14" y1="11" x2="14" y2="11.01"/>
+                <line x1="18" y1="11" x2="18" y2="11.01"/>
               </svg>
-            </button>
-            <button class="media-btn play-btn" id="media-play-pause" aria-label="Play or Pause">
-              <!-- Play Symbol -->
-              <svg class="play-icon" viewBox="0 0 24 24">
-                <polygon points="8 5 19 12 8 19 8 5"/>
+              RAM MEMORY
+            </div>
+            <div class="telemetry-body">
+              <div class="gauge-container">
+                <svg viewBox="0 0 36 36" class="circular-chart">
+                  <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path id="ram-gauge-fill" class="circle" stroke-dasharray="52, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" stroke="#bf5af2" />
+                  <text x="18" y="20.35" class="percentage" id="ram-text">52%</text>
+                </svg>
+              </div>
+              <div class="telemetry-details">
+                <div class="tel-detail-row"><span>Used:</span> <span class="purple-glow">8.3 GB</span></div>
+                <div class="tel-detail-row"><span>Total:</span> <span>16.0 GB</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- GPU CARD -->
+          <div class="glass-card telemetry-card">
+            <div class="telemetry-title">
+              <svg class="tel-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
               </svg>
-              <!-- Pause Symbol -->
-              <svg class="pause-icon" viewBox="0 0 24 24">
-                <rect x="6" y="4" width="4" height="16" rx="1"/>
-                <rect x="14" y="4" width="4" height="16" rx="1"/>
+              GPU RENDER
+            </div>
+            <div class="telemetry-body">
+              <div class="gauge-container">
+                <svg viewBox="0 0 36 36" class="circular-chart">
+                  <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path id="gpu-gauge-fill" class="circle" stroke-dasharray="12, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" stroke="#ff9f0a" />
+                  <text x="18" y="20.35" class="percentage" id="gpu-text">12%</text>
+                </svg>
+              </div>
+              <div class="telemetry-details">
+                <div class="tel-detail-row"><span>Temp:</span> <span class="orange-glow">54°C</span></div>
+                <div class="tel-detail-row"><span>VRAM:</span> <span>2.1 GB</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STORAGE CARD -->
+          <div class="glass-card telemetry-card">
+            <div class="telemetry-title">
+              <svg class="tel-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/>
               </svg>
-            </button>
-            <button class="media-btn" id="media-next" aria-label="Next Track">
-              <svg viewBox="0 0 24 24">
+              DISK STORAGE
+            </div>
+            <div class="telemetry-body">
+              <div class="gauge-container">
+                <svg viewBox="0 0 36 36" class="circular-chart">
+                  <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path id="disk-gauge-fill" class="circle" stroke-dasharray="38, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" stroke="#30d158" />
+                  <text x="18" y="20.35" class="percentage" id="disk-text">38%</text>
+                </svg>
+              </div>
+              <div class="telemetry-details">
+                <div class="tel-detail-row"><span>Used:</span> <span class="green-glow">380 GB</span></div>
+                <div class="tel-detail-row"><span>Total:</span> <span>1000 GB</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="glass-card telemetry-extra">
+          <div class="extra-row">
+            <span>Servidor Local IP:</span>
+            <span class="cyan-glow" id="telemetry-ip">--</span>
+          </div>
+          <div class="extra-row">
+            <span>Ping de Conexión:</span>
+            <span class="cyan-glow" id="telemetry-latency">Online</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 3: MACRO DECK ==================== -->
+      <div id="macro-tab" class="tab-panel">
+        <div class="macro-deck-header">
+          <div class="macro-deck-title">Panel de Macros y Atajos</div>
+          <p>Ejecuta macros de teclado en tu PC con un solo toque</p>
+        </div>
+
+        <div class="macro-grid">
+          <!-- Play / Pause -->
+          <button class="macro-btn" onclick="sendMediaControl('play-pause'); playBeep(successAudio);">
+            <div class="macro-btn-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                 <polygon points="5 4 15 12 5 20 5 4"/>
                 <rect x="17" y="4" width="2" height="16"/>
               </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- iOS 18 Control Center Dual Vertical Sliders (Volume & Gain) -->
-        <div class="sliders-panel">
-          
-          <!-- Volume Vertical Slider -->
-          <div class="cc-slider-wrapper">
-            <div class="cc-vertical-slider" id="volume-vertical-slider">
-              <div class="cc-slider-fill" id="volume-vertical-fill" style="height: 70%;"></div>
-              <div class="cc-slider-icon">
-                <!-- Speaker Volume Waves SVG -->
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>
-                </svg>
-              </div>
-              <span class="cc-slider-value" id="volume-vertical-value">70%</span>
             </div>
-            <div class="cc-slider-label">Volume</div>
-          </div>
+            <span>Reproducir / Pausa</span>
+          </button>
 
-          <!-- Digital Gain Vertical Slider -->
-          <div class="cc-slider-wrapper">
-            <div class="cc-vertical-slider" id="gain-vertical-slider">
-              <div class="cc-slider-fill" id="gain-vertical-fill" style="height: 25%;"></div>
-              <div class="cc-slider-icon">
-                <!-- Lightning / Gain Boost SVG -->
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-              </div>
-              <span class="cc-slider-value" id="gain-vertical-value">+6dB</span>
+          <!-- Cinema Mode -->
+          <button class="macro-btn" onclick="document.getElementById('cinema-btn').click();">
+            <div class="macro-btn-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M2 7l4-4h12l4 4M2 11h20M7 3l-3 4M12 3l-3 4M17 3l-3 4"/>
+              </svg>
             </div>
-            <div class="cc-slider-label">Gain</div>
-          </div>
+            <span>Modo Cine</span>
+          </button>
 
+          <!-- Fullscreen -->
+          <button class="macro-btn" onclick="document.getElementById('fullscreen-btn').click();">
+            <div class="macro-btn-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+              </svg>
+            </div>
+            <span>Pantalla Completa</span>
+          </button>
+
+          <!-- Cerrar Ventana -->
+          <button class="macro-btn" onclick="sendRemoteCommand('cierra la ventana'); playBeep(successAudio);">
+            <div class="macro-btn-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+              </svg>
+            </div>
+            <span>Cerrar Ventana</span>
+          </button>
+
+          <!-- Pone Musica -->
+          <button class="macro-btn" onclick="sendRemoteCommand('pone musica'); playBeep(successAudio);">
+            <div class="macro-btn-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18V5l12-2v13"/>
+                <circle cx="6" cy="18" r="3"/>
+                <circle cx="18" cy="16" r="3"/>
+              </svg>
+            </div>
+            <span>Pone Música</span>
+          </button>
+
+          <!-- Pausa la Musica -->
+          <button class="macro-btn" onclick="sendRemoteCommand('pausa la musica'); playBeep(successAudio);">
+            <div class="macro-btn-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18V5l12-2v13"/>
+                <circle cx="6" cy="18" r="3"/>
+                <circle cx="18" cy="16" r="3"/>
+                <line x1="3" y1="3" x2="21" y2="21"/>
+              </svg>
+            </div>
+            <span>Pausa Música</span>
+          </button>
+
+          <!-- Subir Volumen -->
+          <button class="macro-btn" onclick="sendRemoteCommand('subi el volumen'); playBeep(successAudio);">
+            <div class="macro-btn-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              </svg>
+            </div>
+            <span>Subir Volumen</span>
+          </button>
+
+          <!-- Bajar Volumen -->
+          <button class="macro-btn" onclick="sendRemoteCommand('baja el volumen'); playBeep(successAudio);">
+            <div class="macro-btn-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <line x1="23" y1="12" x2="17" y2="12"/>
+              </svg>
+            </div>
+            <span>Bajar Volumen</span>
+          </button>
+
+          <!-- A Estudiar -->
+          <button class="macro-btn" onclick="sendRemoteCommand('a estudiar'); playBeep(successAudio);">
+            <div class="macro-btn-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+            </div>
+            <span>A Estudiar</span>
+          </button>
+
+          <!-- Promiedos -->
+          <button class="macro-btn" onclick="sendRemoteCommand('poneme promiedos'); playBeep(successAudio);">
+            <div class="macro-btn-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                <path d="M2 12h20"/>
+              </svg>
+            </div>
+            <span>Promiedos</span>
+          </button>
+
+          <!-- Apagar / Adios -->
+          <button class="macro-btn" onclick="sendRemoteCommand('adios'); playBeep(successAudio);">
+            <div class="macro-btn-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                <line x1="12" y1="2" x2="12" y2="12"/>
+              </svg>
+            </div>
+            <span>Apagar Viernes</span>
+          </button>
         </div>
-
       </div>
 
-      <!-- Operations Panel (Fullscreen / Cinema Mode / Sensitivity Slider) -->
-      <div class="glass-card system-ops-card">
-        <div class="ops-header">Display & Capture Rules</div>
-        
-        <div class="ops-row">
-          <!-- Cinema Mode Trigger -->
-          <button class="action-button" id="cinema-btn">
-            <!-- Clapperboard Movie SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-              <path d="M2 7l4-4h12l4 4"/>
-              <path d="M2 11h20"/>
-              <path d="M7 3l-3 4M12 3l-3 4M17 3l-3 4"/>
-            </svg>
-            <span>Cinema Mode</span>
-          </button>
-          
-          <!-- Fullscreen Trigger -->
-          <button class="action-button" id="fullscreen-btn">
-            <!-- Fullscreen Arrows SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-            </svg>
-            <span>Fullscreen</span>
-          </button>
+      <!-- ==================== TAB 4: CONSOLE LOGS ==================== -->
+      <div id="logs-tab" class="tab-panel">
+        <div class="console-header">
+          <div class="console-title">Terminal de Diagnósticos</div>
+          <p>Consola de depuración retro-futurista en tiempo real</p>
         </div>
 
-        <!-- Sensitivity / Noise Gate threshold slider -->
-        <div class="slider-row">
-          <div class="slider-label-row">
-            <span class="slider-label-left">
-              <!-- Sensitivity Sliders Icon -->
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="4" x2="4" y1="21" y2="14"/>
-                <line x1="4" x2="4" y1="10" y2="3"/>
-                <line x1="12" x2="12" y1="21" y2="12"/>
-                <line x1="12" x2="12" y1="8" y2="3"/>
-                <line x1="20" x2="20" y1="21" y2="16"/>
-                <line x1="20" x2="20" y1="12" y2="3"/>
-                <line x1="2" x2="6" y1="14" y2="14"/>
-                <line x1="10" x2="14" y1="8" y2="8"/>
-                <line x1="18" x2="22" y1="16" y2="16"/>
-              </svg>
-              Noise Gate Threshold
-            </span>
-            <span class="value-badge" id="sensitivity-dash-badge">-35 dB</span>
+        <div class="console-container">
+          <div class="console-top-bar">
+            <div class="console-dots">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+            </div>
+            <div class="console-tab-name">viernes_remote.log</div>
+            <div style="width: 30px;"></div>
           </div>
-          <input type="range" min="-60" max="-10" value="-35" class="ios-range" id="sensitivity-dash-slider">
+          <div class="console-body" id="console-log-lines">
+            <!-- Dynamic rolling logs -->
+          </div>
         </div>
       </div>
 
     </div>
 
-    <!-- Element removed (Home indicator) -->
+    <!-- Floating Tab Navigation Bar at the Bottom -->
+    <div class="floating-nav-bar">
+      <button class="nav-item active" onclick="switchTab('hud')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="3"/>
+          <line x1="12" y1="2" x2="12" y2="4"/>
+          <line x1="12" y1="20" x2="12" y2="22"/>
+          <line x1="20" y1="12" x2="22" y2="12"/>
+          <line x1="2" y1="12" x2="4" y2="12"/>
+        </svg>
+        <span>HUD</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('telemetry')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <line x1="9" y1="3" x2="9" y2="21"/>
+          <line x1="15" y1="3" x2="15" y2="21"/>
+          <line x1="3" y1="9" x2="21" y2="9"/>
+          <line x1="3" y1="15" x2="21" y2="15"/>
+        </svg>
+        <span>Telemetría</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('macro')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="4"/>
+          <rect x="6" y="6" width="4" height="4" rx="1"/>
+          <rect x="14" y="6" width="4" height="4" rx="1"/>
+          <rect x="6" y="14" width="4" height="4" rx="1"/>
+          <rect x="14" y="14" width="4" height="4" rx="1"/>
+        </svg>
+        <span>Macros</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('logs')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 17 10 11 4 5"/>
+          <line x1="12" y1="19" x2="20" y2="19"/>
+        </svg>
+        <span>Consola</span>
+      </button>
+    </div>
 
     <!-- Slide-Up Settings Drawer -->
     <div class="drawer-overlay" id="drawer-overlay"></div>
@@ -1724,12 +2320,12 @@
         <span class="helper-text">Ajusta el volumen de los pitidos de feedback que suenan en tu dispositivo.</span>
       </div>
 
-      <div class="control-row" style="margin-top: 25px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 20px;">
-        <h4 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">Guía de Controles</h4>
-        <ul style="font-size: 11px; color: var(--text-tertiary); list-style: none; display: flex; flex-direction: column; gap: 8px; line-height: 1.4;">
+      <div class="control-row" style="margin-top: 25px; border-top: 1px solid rgba(0, 243, 255, 0.15); padding-top: 20px;">
+        <h4 style="font-size: 13px; font-weight: 700; color: var(--accent-cyan); margin-bottom: 8px;">Guía de Controles</h4>
+        <ul style="font-size: 11px; color: var(--text-secondary); list-style: none; display: flex; flex-direction: column; gap: 8px; line-height: 1.4;">
           <li><strong>Volumen:</strong> Regula el volumen de reproducción general de la PC.</li>
           <li><strong>Ganancia (Gain):</strong> Amplifica tu voz desde el móvil. Súbelo si el asistente no te escucha bien.</li>
-          <li><strong>Puerta de Ruido (Noise Gate):</strong> Filtra ruidos de fondo (como ventiladores). Los sonidos más bajos que este umbral (en dB) se ignoran para no enviar ruido inútil.</li>
+          <li><strong>Puerta de Ruido (Noise Gate):</strong> Filtra ruidos de fondo. Los sonidos más bajos que este umbral se ignoran.</li>
         </ul>
       </div>
 
@@ -1746,7 +2342,7 @@
 
       <!-- VIEW 1: LIST OF AUTOMATIONS -->
       <div id="automations-list-view">
-        <button class="action-button active" id="btn-new-automation" style="width: 100%; margin-bottom: 16px; border-radius: 12px; justify-content: center; gap: 8px;">
+        <button class="action-button fullscreen-active" id="btn-new-automation" style="width: 100%; margin-bottom: 16px; border-radius: 12px; justify-content: center; gap: 8px;">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1781,7 +2377,7 @@
           <div class="auto-tags-container" id="form-variants-container">
             <!-- Tag pills for voice variations -->
           </div>
-          <span class="helper-text">Otras frases u opciones misheard que activarán esta misma acción.</span>
+          <span class="helper-text">Frases alternativas que también activarán esta acción.</span>
         </div>
 
         <div class="control-row">
@@ -1854,10 +2450,9 @@
       </div>
     </div>
 
-    <!-- Access Locked Premium Overlay -->
+    <!-- Access Locked Overlay -->
     <div class="lock-screen-overlay" id="lock-screen-overlay">
       <div class="lock-icon-container">
-        <!-- Shield Lock SVG -->
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
           <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -1885,6 +2480,220 @@
 
   </div>
 
+  <script>
+    let hasRealTelemetry = false;
+
+    function switchTab(tabId) {
+      // Remove active class from all tabs
+      document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+      });
+      // Add active class to selected tab
+      document.getElementById(tabId + '-tab').classList.add('active');
+      
+      // Remove active class from all nav items
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      // Add active class to clicked nav item
+      const clickedItem = Array.from(document.querySelectorAll('.nav-item')).find(item => item.getAttribute('onclick').includes(tabId));
+      if (clickedItem) clickedItem.classList.add('active');
+      
+      // Resize canvas if switching back to HUD tab
+      if (tabId === 'hud') {
+        setTimeout(resizeCanvas, 50);
+      }
+    }
+
+    // Intercept console.log, console.warn, console.error to log tab
+    (function() {
+      const originalLog = console.log;
+      const originalWarn = console.warn;
+      const originalError = console.error;
+      
+      const logsContainer = document.getElementById('console-log-lines');
+      
+      function addLogLine(msg, type = 'info', timestamp = null) {
+        if (!logsContainer) return;
+        const line = document.createElement('div');
+        line.className = `log-line log-${type}`;
+        
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'log-time';
+        let timeStr = '';
+        if (timestamp) {
+          const match = timestamp.match(/\d{2}:\d{2}:\d{2}/);
+          timeStr = match ? `[${match[0]}]` : `[${timestamp}]`;
+        } else {
+          const now = new Date();
+          timeStr = `[${now.toTimeString().split(' ')[0]}]`;
+        }
+        timeSpan.textContent = timeStr;
+        
+        const textSpan = document.createElement('span');
+        textSpan.textContent = ` ${msg}`;
+        
+        line.appendChild(timeSpan);
+        line.appendChild(textSpan);
+        
+        // Respect active filter
+        const activeFilterBtn = document.querySelector('.log-filter-bar .filter-btn.active');
+        const activeFilter = activeFilterBtn ? activeFilterBtn.getAttribute('data-level') : 'all';
+        if (activeFilter !== 'all' && type !== activeFilter) {
+          line.style.display = 'none';
+        }
+        
+        logsContainer.appendChild(line);
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+        
+        // Limit total log lines in DOM
+        while (logsContainer.children.length > 100) {
+          logsContainer.removeChild(logsContainer.firstChild);
+        }
+      }
+      
+      console.log = function(...args) {
+        originalLog.apply(console, args);
+        addLogLine(args.join(' '), 'info');
+      };
+      
+      console.warn = function(...args) {
+        originalWarn.apply(console, args);
+        addLogLine(args.join(' '), 'warn');
+      };
+      
+      console.error = function(...args) {
+        originalError.apply(console, args);
+        addLogLine(args.join(' '), 'error');
+      };
+      
+      // Expose to window for remote logs
+      window.addRemoteLogLine = addLogLine;
+      
+      // Initial logs
+      setTimeout(() => {
+        console.log("SYS_INIT: Stark HUD system v4.5 active.");
+        console.log("SYS_INIT: Remote bridge online.");
+        
+        // Inject filter buttons dynamically
+        const consoleHeader = document.querySelector('#logs-tab .console-header');
+        if (consoleHeader) {
+          const filterBar = document.createElement('div');
+          filterBar.className = 'log-filter-bar';
+          filterBar.style.display = 'flex';
+          filterBar.style.gap = '8px';
+          filterBar.style.marginTop = '12px';
+          filterBar.style.marginBottom = '8px';
+          filterBar.innerHTML = `
+            <button class="filter-btn active" data-level="all" style="background: rgba(0, 243, 255, 0.15); border: 1px solid rgba(0, 243, 255, 0.3); color: #fff; border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer;">ALL</button>
+            <button class="filter-btn" data-level="info" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-secondary); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer;">INFO</button>
+            <button class="filter-btn" data-level="warn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-secondary); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer;">WARN</button>
+            <button class="filter-btn" data-level="error" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-secondary); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer;">ERROR</button>
+          `;
+          consoleHeader.appendChild(filterBar);
+          
+          filterBar.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+              filterBar.querySelectorAll('.filter-btn').forEach(b => {
+                b.style.background = 'rgba(255, 255, 255, 0.05)';
+                b.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                b.style.color = 'var(--text-secondary)';
+                b.classList.remove('active');
+              });
+              btn.style.background = 'rgba(0, 243, 255, 0.15)';
+              btn.style.borderColor = 'rgba(0, 243, 255, 0.3)';
+              btn.style.color = '#fff';
+              btn.classList.add('active');
+              const activeFilter = btn.getAttribute('data-level');
+              
+              document.querySelectorAll('#console-log-lines .log-line').forEach(line => {
+                if (activeFilter === 'all') {
+                  line.style.display = 'flex';
+                } else {
+                  if (line.classList.contains(`log-${activeFilter}`)) {
+                    line.style.display = 'flex';
+                  } else {
+                    line.style.display = 'none';
+                  }
+                }
+              });
+            });
+          });
+        }
+      }, 100);
+    })();
+
+    // Live Telemetry Loop (Simulating micro fluctuations)
+    setInterval(() => {
+      if (hasRealTelemetry) {
+        const latencyText = document.getElementById('telemetry-latency');
+        const ipText = document.getElementById('telemetry-ip');
+        if (ipText && ipText.textContent === '--') {
+          ipText.textContent = window.location.hostname;
+        }
+        if (latencyText) {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            const mockPing = Math.floor(5 + Math.random() * 15);
+            latencyText.textContent = `${mockPing} ms`;
+          } else {
+            latencyText.textContent = 'Disconnected';
+          }
+        }
+        return;
+      }
+
+      // CPU
+      const cpuVal = Math.floor(15 + Math.random() * 30);
+      const cpuCircle = document.getElementById('cpu-gauge-fill');
+      const cpuText = document.getElementById('cpu-text');
+      if (cpuCircle && cpuText) {
+        cpuCircle.setAttribute('stroke-dasharray', `${cpuVal}, 100`);
+        cpuText.textContent = `${cpuVal}%`;
+      }
+      
+      // RAM
+      const ramVal = Math.floor(48 + Math.random() * 4);
+      const ramCircle = document.getElementById('ram-gauge-fill');
+      const ramText = document.getElementById('ram-text');
+      if (ramCircle && ramText) {
+        ramCircle.setAttribute('stroke-dasharray', `${ramVal}, 100`);
+        ramText.textContent = `${ramVal}%`;
+      }
+
+      // GPU
+      const gpuVal = Math.floor(5 + Math.random() * 15);
+      const gpuCircle = document.getElementById('gpu-gauge-fill');
+      const gpuText = document.getElementById('gpu-text');
+      if (gpuCircle && gpuText) {
+        gpuCircle.setAttribute('stroke-dasharray', `${gpuVal}, 100`);
+        gpuText.textContent = `${gpuVal}%`;
+      }
+
+      // DISK (Steady disk space usage)
+      const diskVal = 38;
+      const diskCircle = document.getElementById('disk-gauge-fill');
+      const diskText = document.getElementById('disk-text');
+      if (diskCircle && diskText) {
+        diskCircle.setAttribute('stroke-dasharray', `${diskVal}, 100`);
+        diskText.textContent = `${diskVal}%`;
+      }
+
+      // Simulated local latency/ip values if WS open
+      const latencyText = document.getElementById('telemetry-latency');
+      const ipText = document.getElementById('telemetry-ip');
+      if (ipText && ipText.textContent === '--') {
+        ipText.textContent = window.location.hostname;
+      }
+      if (latencyText) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          const mockPing = Math.floor(5 + Math.random() * 15);
+          latencyText.textContent = `${mockPing} ms`;
+        } else {
+          latencyText.textContent = 'Disconnected';
+        }
+      }
+    }, 2000);
+  </script>
   <script>
     // State Constants
     const STATES = {
@@ -2224,11 +3033,9 @@
 
               const trackTitle = document.getElementById('media-track-title');
               const trackArtist = document.getElementById('media-track-artist');
-              const cardTitle = document.querySelector('.media-card-title');
 
               if (trackTitle) trackTitle.textContent = media.title || 'Desconocido';
               if (trackArtist) trackArtist.textContent = media.artist || 'Desconocido';
-              if (cardTitle) cardTitle.textContent = 'Now Playing';
 
               updateMediaUI();
 
@@ -2241,13 +3048,153 @@
             } else {
               mediaIsActive = false;
               mediaIsPlaying = false;
-              const cardTitle = document.querySelector('.media-card-title');
-              if (cardTitle) cardTitle.textContent = 'Automating';
               updateMediaUI();
             }
           } else if (data.type === 'tts') {
             // Reproducir la voz en el móvil
             speakText(data.text);
+          } else if (data.type === 'telemetry') {
+            hasRealTelemetry = true;
+            const telemetry = data.data;
+            if (telemetry) {
+              // 1. CPU
+              if (telemetry.cpu) {
+                const cpuVal = Math.round(telemetry.cpu.usage_percent);
+                const cpuCircle = document.getElementById('cpu-gauge-fill');
+                const cpuText = document.getElementById('cpu-text');
+                if (cpuCircle) cpuCircle.setAttribute('stroke-dasharray', `${cpuVal}, 100`);
+                if (cpuText) cpuText.textContent = `${cpuVal}%`;
+                
+                const cpuCards = document.querySelectorAll('#telemetry-tab .telemetry-card');
+                if (cpuCards.length > 0) {
+                  const cpuSpans = cpuCards[0].querySelectorAll('.tel-detail-row span');
+                  if (cpuSpans.length >= 4) {
+                    cpuSpans[1].textContent = `${Math.round(35 + cpuVal * 0.45)}°C`;
+                    cpuSpans[3].textContent = `${(2.2 + (cpuVal / 100) * 2.5).toFixed(1)} GHz`;
+                  }
+                }
+              }
+              
+              // 2. RAM
+              if (telemetry.ram) {
+                const ramVal = Math.round(telemetry.ram.usage_percent);
+                const ramCircle = document.getElementById('ram-gauge-fill');
+                const ramText = document.getElementById('ram-text');
+                if (ramCircle) ramCircle.setAttribute('stroke-dasharray', `${ramVal}, 100`);
+                if (ramText) ramText.textContent = `${ramVal}%`;
+                
+                const totalRam = 16.0;
+                const usedRam = (totalRam * (ramVal / 100)).toFixed(1);
+                const ramCards = document.querySelectorAll('#telemetry-tab .telemetry-card');
+                if (ramCards.length > 1) {
+                  const ramSpans = ramCards[1].querySelectorAll('.tel-detail-row span');
+                  if (ramSpans.length >= 4) {
+                    ramSpans[1].textContent = `${usedRam} GB`;
+                    ramSpans[3].textContent = `${totalRam.toFixed(1)} GB`;
+                  }
+                }
+              }
+              
+              // 3. GPU
+              const gpuCircle = document.getElementById('gpu-gauge-fill');
+              const gpuText = document.getElementById('gpu-text');
+              const gpuCards = document.querySelectorAll('#telemetry-tab .telemetry-card');
+              if (telemetry.gpu) {
+                const gpuVal = Math.round(telemetry.gpu.usage_percent);
+                if (gpuCircle) gpuCircle.setAttribute('stroke-dasharray', `${gpuVal}, 100`);
+                if (gpuText) gpuText.textContent = `${gpuVal}%`;
+                
+                if (gpuCards.length > 2) {
+                  const gpuSpans = gpuCards[2].querySelectorAll('.tel-detail-row span');
+                  if (gpuSpans.length >= 4) {
+                    gpuSpans[1].textContent = `${Math.round(telemetry.gpu.temperature)}°C`;
+                    gpuSpans[3].textContent = `${(telemetry.gpu.vram_used_mb / 1024).toFixed(1)} / ${(telemetry.gpu.vram_total_mb / 1024).toFixed(1)} GB`;
+                  }
+                }
+              } else {
+                if (gpuCircle) gpuCircle.setAttribute('stroke-dasharray', `0, 100`);
+                if (gpuText) gpuText.textContent = `0%`;
+                if (gpuCards.length > 2) {
+                  const gpuSpans = gpuCards[2].querySelectorAll('.tel-detail-row span');
+                  if (gpuSpans.length >= 4) {
+                    gpuSpans[1].textContent = `N/A`;
+                    gpuSpans[3].textContent = `N/A`;
+                  }
+                }
+              }
+              
+              // 4. Disk
+              if (telemetry.disk) {
+                const diskVal = Math.round(telemetry.disk.usage_percent);
+                const diskCircle = document.getElementById('disk-gauge-fill');
+                const diskText = document.getElementById('disk-text');
+                if (diskCircle) diskCircle.setAttribute('stroke-dasharray', `${diskVal}, 100`);
+                if (diskText) diskText.textContent = `${diskVal}%`;
+                
+                const parts = (telemetry.disk.display || '').split('/');
+                const diskCards = document.querySelectorAll('#telemetry-tab .telemetry-card');
+                if (diskCards.length > 3) {
+                  const diskSpans = diskCards[3].querySelectorAll('.tel-detail-row span');
+                  if (diskSpans.length >= 4) {
+                    if (parts.length >= 2) {
+                      diskSpans[1].textContent = parts[0].trim();
+                      diskSpans[3].textContent = parts[1].trim();
+                    } else {
+                      diskSpans[1].textContent = `${diskVal}%`;
+                      diskSpans[3].textContent = `1000 GB`;
+                    }
+                  }
+                }
+              }
+            }
+          } else if (data.type === 'log') {
+            const rawMsg = data.message || '';
+            const parts = rawMsg.split(' - ');
+            let logText = rawMsg;
+            let logLevel = 'info';
+            let timestamp = null;
+            if (parts.length >= 4) {
+              timestamp = parts[0].trim();
+              const level = parts[2].trim().toUpperCase();
+              logText = parts.slice(3).join(' - ');
+              if (level === 'DEBUG') logLevel = 'info';
+              else if (level === 'INFO') logLevel = 'info';
+              else if (level === 'WARNING' || level === 'WARN') logLevel = 'warn';
+              else if (level === 'ERROR' || level === 'CRITICAL') logLevel = 'error';
+            }
+            if (window.addRemoteLogLine) {
+              window.addRemoteLogLine(logText, logLevel, timestamp);
+            }
+          } else if (data.type === 'fft') {
+            window.serverFftBins = data.bins;
+          } else if (data.type === 'clipboard') {
+            const clipText = data.text || '';
+            showToast({
+              title: "PORTAPAPELES PC",
+              message: `Copiado en PC: "${clipText.length > 50 ? clipText.substring(0, 50) + '...' : clipText}"`,
+              duration: 8000,
+              action: {
+                label: "Copiar al móvil",
+                callback: () => {
+                  try {
+                    navigator.clipboard.writeText(clipText)
+                      .then(() => console.log("Copiado al portapapeles del móvil"))
+                      .catch(err => {
+                        console.error("Error navigator.clipboard:", err);
+                        fallbackCopyToClipboard(clipText);
+                      });
+                  } catch (err) {
+                    fallbackCopyToClipboard(clipText);
+                  }
+                }
+              }
+            });
+          } else if (data.type === 'download_complete') {
+            showToast({
+              title: "DESCARGA COMPLETADA",
+              message: `El archivo "${data.filename}" se descargó en tu PC.`,
+              duration: 6000
+            });
           }
         } catch (err) {
           console.error("Error al procesar mensaje de WebSocket:", err);
@@ -2784,11 +3731,22 @@
     const canvas = document.getElementById('waveCanvas');
     const ctx = canvas.getContext('2d');
     
+    // Now Playing FFT Canvas
+    const mediaCanvas = document.getElementById('mediaFftCanvas');
+    const mediaCtx = mediaCanvas.getContext('2d');
+    
     function resizeCanvas() {
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = canvas.parentElement.clientWidth * dpr;
-      canvas.height = canvas.parentElement.clientHeight * dpr;
-      ctx.scale(dpr, dpr);
+      if (canvas.parentElement) {
+        canvas.width = canvas.parentElement.clientWidth * dpr;
+        canvas.height = canvas.parentElement.clientHeight * dpr;
+        ctx.scale(dpr, dpr);
+      }
+      if (mediaCanvas.parentElement) {
+        mediaCanvas.width = mediaCanvas.parentElement.clientWidth * dpr;
+        mediaCanvas.height = mediaCanvas.parentElement.clientHeight * dpr;
+        mediaCtx.scale(dpr, dpr);
+      }
     }
     
     window.addEventListener('resize', resizeCanvas);
@@ -2806,6 +3764,20 @@
 
       ctx.clearRect(0, 0, width, height);
 
+      // Check if server FFT is active and non-zero
+      let fftActive = false;
+      let fftAvg = 0;
+      if (window.serverFftBins && window.serverFftBins.length > 0) {
+        let sum = 0;
+        for (let i = 0; i < window.serverFftBins.length; i++) {
+          sum += window.serverFftBins[i];
+        }
+        fftAvg = sum / window.serverFftBins.length;
+        if (sum > 0.0001) {
+          fftActive = true;
+        }
+      }
+
       // Get real audio values if allowed
       let inputAmplitude = 0.15;
       if (useRealAudio && analyser && (currentState === STATES.RECORDING || drawerMicSource.value === 'mobile')) {
@@ -2818,15 +3790,15 @@
           }
         }
         const rms = maxVal / 128.0;
-        inputAmplitude = rms * 2.5 + 0.05;
+        inputAmplitude = rms * 1.5 + 0.05;
       } else {
         const timestamp = Date.now();
         if (currentState === STATES.RECORDING) {
-          inputAmplitude = 0.45 + 0.35 * Math.sin(timestamp * 0.003) * Math.cos(timestamp * 0.0009);
+          inputAmplitude = 0.35 + 0.15 * Math.sin(timestamp * 0.003) * Math.cos(timestamp * 0.0009);
         } else if (currentState === STATES.LISTENING) {
-          inputAmplitude = 0.18 + 0.06 * Math.sin(timestamp * 0.001);
+          inputAmplitude = 0.15 + 0.04 * Math.sin(timestamp * 0.001);
         } else if (currentState === STATES.PROCESSING) {
-          inputAmplitude = 0.28 + 0.05 * Math.sin(timestamp * 0.008);
+          inputAmplitude = 0.22 + 0.04 * Math.sin(timestamp * 0.008);
         } else {
           inputAmplitude = 0.03;
         }
@@ -2834,13 +3806,61 @@
 
       currentAmplitudeMultiplier += (inputAmplitude - currentAmplitudeMultiplier) * 0.15;
 
+      // Draw FFT visualizer on media canvas if active
+      const mediaFftBlock = document.getElementById('media-fft-block');
+      if (mediaFftBlock) {
+        const isCurrentlyVisible = mediaFftBlock.style.display !== 'none';
+        if (fftActive !== isCurrentlyVisible) {
+          mediaFftBlock.style.display = fftActive ? 'block' : 'none';
+          resizeCanvas();
+        }
+      }
+
+      const mediaWidth = mediaCanvas.width / (window.devicePixelRatio || 1);
+      const mediaHeight = mediaCanvas.height / (window.devicePixelRatio || 1);
+      mediaCtx.clearRect(0, 0, mediaWidth, mediaHeight);
+
+      if (fftActive) {
+        const numBars = window.serverFftBins.length;
+        const gap = 2;
+        const totalGapWidth = gap * (numBars - 1);
+        const barWidth = (mediaWidth - totalGapWidth) / numBars;
+        
+        mediaCtx.save();
+        mediaCtx.shadowBlur = 6;
+        
+        for (let i = 0; i < numBars; i++) {
+          const rawVal = window.serverFftBins[i] || 0;
+          // Apply a square-root scale to boost low magnitudes and keep dynamics highly visible
+          const visualVal = Math.sqrt(rawVal);
+          const barHeight = Math.max(1, Math.min(mediaHeight * 0.95, visualVal * mediaHeight * 8.5));
+          const x = i * (barWidth + gap);
+          const y = mediaHeight - barHeight;
+          
+          // Unified neon-cyan visual style matching the Stark HUD theme
+          const gradient = mediaCtx.createLinearGradient(x, y, x, mediaHeight);
+          gradient.addColorStop(0, 'rgba(0, 243, 255, 0.9)');
+          gradient.addColorStop(1, 'rgba(0, 243, 255, 0.15)');
+          
+          mediaCtx.shadowColor = 'rgba(0, 243, 255, 0.4)';
+          mediaCtx.fillStyle = gradient;
+          
+          mediaCtx.beginPath();
+          mediaCtx.roundRect(x, y, barWidth, barHeight, [2, 2, 0, 0]);
+          mediaCtx.fill();
+        }
+        mediaCtx.restore();
+      }
+
       // Animar el botón de micrófono según el volumen de voz capturado
       if (currentState === STATES.RECORDING) {
         const scaleVal = 1.0 + Math.min(0.25, currentAmplitudeMultiplier * 0.15);
         const glowVal = 15 + Math.min(45, currentAmplitudeMultiplier * 25);
         
         micTriggerBtn.style.transform = `scale(${scaleVal})`;
-        micTriggerBtn.style.boxShadow = `0 0 ${glowVal}px rgba(255, 69, 58, 0.75), inset 0 2px 5px rgba(255, 255, 255, 0.15)`;
+        
+        const shadowColor = 'rgba(255, 69, 58, 0.75)';
+        micTriggerBtn.style.boxShadow = `0 0 ${glowVal}px ${shadowColor}, inset 0 2px 5px rgba(255, 255, 255, 0.15)`;
         
         const outerRing = document.querySelector('.mic-outer-ring');
         if (outerRing) {
@@ -2850,6 +3870,24 @@
           outerRing.style.transform = `scale(${ringScale})`;
           outerRing.style.opacity = ringOpacity;
           outerRing.style.borderColor = `rgba(255, 69, 58, ${ringOpacity})`;
+        }
+
+        // Animar anillos del Reactor de Arco
+        const ringOuter = document.querySelector('.reactor-ring-outer');
+        const ringMiddle = document.querySelector('.reactor-ring-middle');
+        const ringInner = document.querySelector('.reactor-ring-inner');
+        
+        if (ringOuter && ringMiddle && ringInner) {
+          const rotationSpeed = 1.0 + currentAmplitudeMultiplier * 10;
+          if (!window.reactorAngles) {
+            window.reactorAngles = { outer: 0, middle: 0, inner: 0 };
+          }
+          window.reactorAngles.outer = (window.reactorAngles.outer + rotationSpeed) % 360;
+          window.reactorAngles.middle = (window.reactorAngles.middle - rotationSpeed * 1.5) % 360;
+          
+          ringOuter.style.transform = `rotate(${window.reactorAngles.outer}deg) scale(${1.0 + currentAmplitudeMultiplier * 0.08})`;
+          ringMiddle.style.transform = `rotate(${window.reactorAngles.middle}deg) scale(${1.0 + currentAmplitudeMultiplier * 0.12})`;
+          ringInner.style.transform = `scale(${1.0 + currentAmplitudeMultiplier * 0.16})`;
         }
       } else {
         micTriggerBtn.style.transform = '';
@@ -2868,6 +3906,13 @@
             outerRing.style.animation = 'none';
           }
         }
+
+        const ringOuter = document.querySelector('.reactor-ring-outer');
+        const ringMiddle = document.querySelector('.reactor-ring-middle');
+        const ringInner = document.querySelector('.reactor-ring-inner');
+        if (ringOuter) ringOuter.style.transform = '';
+        if (ringMiddle) ringMiddle.style.transform = '';
+        if (ringInner) ringInner.style.transform = '';
       }
 
       let waves = [];
@@ -2878,22 +3923,22 @@
         ];
       } else if (currentState === STATES.LISTENING) {
         waves = [
-          { amplitude: 14, freq: 0.025, speed: 0.06, color: 'rgba(10, 132, 255, 0.55)', width: 2 },
-          { amplitude: 9, freq: 0.035, speed: -0.04, color: 'rgba(191, 90, 242, 0.4)', width: 1.5 },
-          { amplitude: 5, freq: 0.018, speed: 0.02, color: 'rgba(255, 255, 255, 0.25)', width: 1 }
+          { amplitude: 10, freq: 0.025, speed: 0.06, color: 'rgba(10, 132, 255, 0.55)', width: 2 },
+          { amplitude: 6, freq: 0.035, speed: -0.04, color: 'rgba(191, 90, 242, 0.4)', width: 1.5 },
+          { amplitude: 4, freq: 0.018, speed: 0.02, color: 'rgba(255, 255, 255, 0.25)', width: 1 }
         ];
       } else if (currentState === STATES.RECORDING) {
         waves = [
-          { amplitude: 38, freq: 0.03, speed: 0.12, color: 'rgba(255, 69, 58, 0.65)', width: 3 },
-          { amplitude: 24, freq: 0.045, speed: -0.09, color: 'rgba(255, 159, 10, 0.55)', width: 2 },
-          { amplitude: 16, freq: 0.02, speed: 0.07, color: 'rgba(255, 255, 255, 0.45)', width: 1.5 },
-          { amplitude: 10, freq: 0.055, speed: -0.14, color: 'rgba(191, 90, 242, 0.35)', width: 1 }
+          { amplitude: 16, freq: 0.03, speed: 0.12, color: 'rgba(255, 69, 58, 0.65)', width: 2.5 },
+          { amplitude: 10, freq: 0.045, speed: -0.09, color: 'rgba(255, 159, 10, 0.55)', width: 1.8 },
+          { amplitude: 7, freq: 0.02, speed: 0.07, color: 'rgba(255, 255, 255, 0.45)', width: 1.2 },
+          { amplitude: 4, freq: 0.055, speed: -0.14, color: 'rgba(191, 90, 242, 0.35)', width: 1 }
         ];
       } else if (currentState === STATES.PROCESSING) {
         waves = [
-          { amplitude: 16, freq: 0.07, speed: 0.18, color: 'rgba(191, 90, 242, 0.65)', width: 2.2 },
-          { amplitude: 12, freq: 0.05, speed: -0.15, color: 'rgba(10, 132, 255, 0.5)', width: 1.8 },
-          { amplitude: 7, freq: 0.09, speed: 0.22, color: 'rgba(255, 59, 48, 0.35)', width: 1 }
+          { amplitude: 12, freq: 0.07, speed: 0.18, color: 'rgba(191, 90, 242, 0.65)', width: 2.0 },
+          { amplitude: 8, freq: 0.05, speed: -0.15, color: 'rgba(10, 132, 255, 0.5)', width: 1.5 },
+          { amplitude: 5, freq: 0.09, speed: 0.22, color: 'rgba(255, 59, 48, 0.35)', width: 1 }
         ];
       }
 
@@ -3533,6 +4578,153 @@
         alert("Error de red al guardar la configuración.");
       }
     }
+
+    // --- Dynamic Toast and Clipboard sync helpers ---
+    function showToast(options) {
+      const frame = document.querySelector('.device-frame');
+      if (!frame) return;
+
+      let container = document.getElementById('toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.position = 'absolute';
+        container.style.top = '70px';
+        container.style.left = '16px';
+        container.style.right = '16px';
+        container.style.zIndex = '9999';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '10px';
+        container.style.pointerEvents = 'none';
+        frame.appendChild(container);
+      }
+
+      const toast = document.createElement('div');
+      toast.style.pointerEvents = 'auto';
+      toast.style.background = 'rgba(12, 18, 32, 0.85)';
+      toast.style.backdropFilter = 'blur(15px)';
+      toast.style.webkitBackdropFilter = 'blur(15px)';
+      toast.style.border = '1px solid rgba(0, 243, 255, 0.35)';
+      toast.style.boxShadow = '0 0 15px rgba(0, 243, 255, 0.2)';
+      toast.style.borderRadius = '12px';
+      toast.style.padding = '12px 16px';
+      toast.style.display = 'flex';
+      toast.style.flexDirection = 'column';
+      toast.style.gap = '6px';
+      toast.style.transform = 'translateY(-20px)';
+      toast.style.opacity = '0';
+      toast.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+
+      const header = document.createElement('div');
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
+      header.style.alignItems = 'center';
+      
+      const titleSpan = document.createElement('span');
+      titleSpan.style.fontSize = '11px';
+      titleSpan.style.fontWeight = '800';
+      titleSpan.style.color = 'var(--accent-cyan)';
+      titleSpan.style.textTransform = 'uppercase';
+      titleSpan.style.letterSpacing = '1px';
+      titleSpan.textContent = options.title || 'Notification';
+      
+      const closeBtn = document.createElement('span');
+      closeBtn.innerHTML = '&times;';
+      closeBtn.style.color = 'var(--text-secondary)';
+      closeBtn.style.cursor = 'pointer';
+      closeBtn.style.fontSize = '18px';
+      closeBtn.style.fontWeight = 'bold';
+      closeBtn.style.lineHeight = '1';
+      closeBtn.addEventListener('click', dismiss);
+      
+      header.appendChild(titleSpan);
+      header.appendChild(closeBtn);
+      toast.appendChild(header);
+
+      const body = document.createElement('div');
+      body.style.fontSize = '12.5px';
+      body.style.color = '#fff';
+      body.style.lineHeight = '1.4';
+      body.textContent = options.message || '';
+      toast.appendChild(body);
+
+      if (options.action) {
+        const actionBtn = document.createElement('button');
+        actionBtn.style.alignSelf = 'flex-end';
+        actionBtn.style.background = 'var(--accent-cyan)';
+        actionBtn.style.border = 'none';
+        actionBtn.style.color = '#080b12';
+        actionBtn.style.padding = '6px 12px';
+        actionBtn.style.borderRadius = '8px';
+        actionBtn.style.fontSize = '11px';
+        actionBtn.style.fontWeight = '700';
+        actionBtn.style.cursor = 'pointer';
+        actionBtn.style.marginTop = '4px';
+        actionBtn.style.boxShadow = '0 0 10px rgba(0, 243, 255, 0.3)';
+        actionBtn.textContent = options.action.label;
+        actionBtn.addEventListener('click', () => {
+          options.action.callback();
+          dismiss();
+        });
+        toast.appendChild(actionBtn);
+      }
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.transform = 'translateY(0)';
+        toast.style.opacity = '1';
+      }, 10);
+
+      function dismiss() {
+        toast.style.transform = 'translateY(-20px)';
+        toast.style.opacity = '0';
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+
+      if (options.duration !== 0) {
+        setTimeout(dismiss, options.duration || 5000);
+      }
+    }
+
+    function fallbackCopyToClipboard(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          console.log('Copiado al portapapeles (fallback).');
+        } else {
+          console.warn('Fallback de copia falló.');
+        }
+      } catch (err) {
+        console.error('Fallback de copia error:', err);
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // Bidirectional clipboard sync
+    document.addEventListener('copy', (e) => {
+      const selectedText = window.getSelection().toString();
+      if (selectedText && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          event: "clipboard",
+          text: selectedText
+        }));
+        console.log("Copiado enviado al PC desde móvil.");
+      }
+    });
   </script>
 
   <!-- Register Service Worker -->

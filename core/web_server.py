@@ -5,8 +5,11 @@ import subprocess
 import logging
 import threading
 import json
+import time
+import asyncio
 from datetime import datetime, timedelta
 from typing import List, Optional
+
 
 import numpy as np
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, status, Depends, Header
@@ -77,6 +80,229 @@ assistant_instance = None
 active_mic_source = "pc"  # "pc" o "mobile"
 uvicorn_loop = None
 
+# Global state for background tasks
+fft_processor = None
+telemetry_task = None
+log_handler = None
+download_watcher = None
+clipboard_watcher = None
+
+last_clipboard_value = None
+clipboard_lock = threading.Lock()
+
+# Custom WebSocket Logging Handler
+class WebSocketLogHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            log_entry = self.format(record)
+            if uvicorn_loop and uvicorn_loop.is_running():
+                asyncio.run_coroutine_threadsafe(
+                    manager.broadcast({"type": "log", "message": log_entry}),
+                    uvicorn_loop
+                )
+        except Exception:
+            pass
+
+def start_logging_stream():
+    global log_handler
+    if log_handler is None:
+        log_handler = WebSocketLogHandler()
+        log_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        log_handler.setFormatter(formatter)
+        logging.getLogger().addHandler(log_handler)
+        logger.info("Custom WebSocket logging handler registered.")
+
+def stop_logging_stream():
+    global log_handler
+    if log_handler is not None:
+        logging.getLogger().removeHandler(log_handler)
+        log_handler = None
+        logger.info("Custom WebSocket logging handler unregistered.")
+
+# AudioFFTProcessor Control
+def start_fft_processor():
+    global fft_processor
+    if fft_processor is None:
+        from .audio_fft import AudioFFTProcessor
+        def fft_callback(bins):
+            if uvicorn_loop and uvicorn_loop.is_running():
+                asyncio.run_coroutine_threadsafe(
+                    manager.broadcast({"type": "fft", "bins": bins}),
+                    uvicorn_loop
+                )
+        fft_processor = AudioFFTProcessor(num_bins=64, callback=fft_callback)
+        fft_processor.start()
+        logger.info("AudioFFTProcessor started.")
+
+def stop_fft_processor():
+    global fft_processor
+    if fft_processor is not None:
+        fft_processor.stop()
+        fft_processor.join(timeout=2.0)
+        fft_processor = None
+        logger.info("AudioFFTProcessor stopped.")
+
+# Telemetry Loop
+async def telemetry_loop():
+    from .telemetry import get_system_telemetry
+    logger.info("Iniciando loop de telemetría de sistema...")
+    while True:
+        try:
+            data = get_system_telemetry()
+            await manager.broadcast({"type": "telemetry", "data": data})
+        except Exception as e:
+            logger.error(f"Error en loop de telemetría: {e}")
+        await asyncio.sleep(1.5)
+
+def start_telemetry_loop():
+    global telemetry_task
+    if telemetry_task is None and uvicorn_loop:
+        telemetry_task = uvicorn_loop.create_task(telemetry_loop())
+
+def stop_telemetry_loop():
+    global telemetry_task
+    if telemetry_task is not None:
+        telemetry_task.cancel()
+        telemetry_task = None
+        logger.info("Loop de telemetría detenido.")
+
+# DownloadWatcher Integration
+def download_callback(filepath):
+    filename = os.path.basename(filepath)
+    logger.info(f"Download complete: {filename}")
+    if uvicorn_loop and uvicorn_loop.is_running():
+        asyncio.run_coroutine_threadsafe(
+            manager.broadcast({
+                "type": "download_complete",
+                "filename": filename,
+                "path": filepath
+            }),
+            uvicorn_loop
+        )
+
+def start_download_watcher():
+    global download_watcher
+    if download_watcher is None:
+        from .download_watcher import DownloadWatcher
+        watch_dir = None
+        if assistant_instance and hasattr(assistant_instance, "config"):
+            watch_dir = assistant_instance.config.get("download_dir")
+        download_watcher = DownloadWatcher(watch_dir=watch_dir, callback=download_callback)
+        download_watcher.start()
+        logger.info(f"DownloadWatcher started on {download_watcher.watch_dir}.")
+
+def stop_download_watcher():
+    global download_watcher
+    if download_watcher is not None:
+        download_watcher.stop()
+        download_watcher = None
+        logger.info("DownloadWatcher stopped.")
+
+# Clipboard Integration Helpers
+def get_local_clipboard() -> str:
+    try:
+        import pyperclip
+        return pyperclip.paste()
+    except Exception as e:
+        logger.error(f"Error pasting from clipboard via pyperclip: {e}")
+        try:
+            res = subprocess.run(["wl-paste", "-n"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            return res.stdout.decode('utf-8', errors='ignore')
+        except Exception as ex:
+            logger.error(f"Error pasting from clipboard via wl-paste: {ex}")
+            return ""
+
+def set_local_clipboard(text: str):
+    global last_clipboard_value
+    with clipboard_lock:
+        last_clipboard_value = text
+        try:
+            import pyperclip
+            pyperclip.copy(text)
+        except Exception as e:
+            logger.error(f"Error copying to clipboard via pyperclip: {e}")
+            try:
+                subprocess.run(["wl-copy"], input=text.encode('utf-8'), check=True)
+            except Exception as ex:
+                logger.error(f"Error copying to clipboard via wl-copy: {ex}")
+
+def handle_clipboard_change(text: str):
+    global last_clipboard_value
+    with clipboard_lock:
+        if text == last_clipboard_value or not text:
+            return
+        last_clipboard_value = text
+    if uvicorn_loop and uvicorn_loop.is_running():
+        asyncio.run_coroutine_threadsafe(
+            manager.broadcast({"type": "clipboard", "text": text}),
+            uvicorn_loop
+        )
+
+class ClipboardWatcher(threading.Thread):
+    def __init__(self):
+        super().__init__(daemon=True)
+        self.running = False
+        self.process = None
+
+    def run(self):
+        self.running = True
+        try:
+            subprocess.run(["wl-paste", "-n"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1.0)
+            self.process = subprocess.Popen(
+                ["wl-paste", "--watch", "echo", "CHANGED"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1
+            )
+            logger.info("ClipboardWatcher: using reactive wl-paste --watch.")
+            while self.running and self.process.poll() is None:
+                line = self.process.stdout.readline()
+                if not line:
+                    break
+                if "CHANGED" in line:
+                    val = get_local_clipboard()
+                    handle_clipboard_change(val)
+        except Exception as e:
+            logger.info(f"ClipboardWatcher: wl-paste --watch not available or failed ({e}). Falling back to polling.")
+
+        # Polling fallback loop
+        last_val = get_local_clipboard()
+        while self.running:
+            try:
+                time.sleep(1.0)
+                curr_val = get_local_clipboard()
+                if curr_val != last_val:
+                    last_val = curr_val
+                    handle_clipboard_change(curr_val)
+            except Exception as e:
+                logger.debug(f"Error in clipboard polling: {e}")
+
+    def stop(self):
+        self.running = False
+        if self.process:
+            try:
+                self.process.terminate()
+                self.process.wait(timeout=1.0)
+            except Exception:
+                pass
+            self.process = None
+
+def start_clipboard_watcher():
+    global clipboard_watcher
+    if clipboard_watcher is None:
+        clipboard_watcher = ClipboardWatcher()
+        clipboard_watcher.start()
+        logger.info("ClipboardWatcher started.")
+
+def stop_clipboard_watcher():
+    global clipboard_watcher
+    if clipboard_watcher is not None:
+        clipboard_watcher.stop()
+        clipboard_watcher = None
+        logger.info("ClipboardWatcher stopped.")
+
 # Manager para conexiones de WebSocket
 class ConnectionManager:
     def __init__(self):
@@ -85,6 +311,16 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
+
+        # If this is the first client, start all services
+        if len(self.active_connections) == 1:
+            logger.info("First client connected. Starting all background services...")
+            start_fft_processor()
+            start_telemetry_loop()
+            start_logging_stream()
+            start_download_watcher()
+            start_clipboard_watcher()
+
         # Enviar el estado actual al conectarse
         if assistant_instance:
             current_state = getattr(assistant_instance.listener, "current_state", "IDLE")
@@ -95,10 +331,26 @@ class ConnectionManager:
             await websocket.send_json({"type": "volume", "value": vol})
         except Exception:
             pass
+        # Enviar el valor actual del portapapeles al conectar
+        try:
+            curr_clip = get_local_clipboard()
+            if curr_clip:
+                await websocket.send_json({"type": "clipboard", "text": curr_clip})
+        except Exception:
+            pass
 
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
+
+        # If this was the last client, stop all services
+        if len(self.active_connections) == 0:
+            logger.info("Last client disconnected. Stopping all background services...")
+            stop_fft_processor()
+            stop_telemetry_loop()
+            stop_logging_stream()
+            stop_download_watcher()
+            stop_clipboard_watcher()
 
     async def send_personal_message(self, message: dict, websocket: WebSocket):
         await websocket.send_json(message)
@@ -453,6 +705,15 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = Query(
                         if hasattr(assistant_instance.listener, "is_paused"):
                             assistant_instance.listener.is_paused = (source == "mobile")
                         assistant_instance.notify_state("ESCUCHANDO_WAKE")
+
+                elif event_type == "clipboard":
+                    text = data.get("text", "")
+                    logger.info("Comando de portapapeles recibido de cliente.")
+                    threading.Thread(
+                        target=set_local_clipboard,
+                        args=(text,),
+                        daemon=True
+                    ).start()
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)

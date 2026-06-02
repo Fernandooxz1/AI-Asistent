@@ -1,7 +1,9 @@
 import subprocess
 import logging
 import shlex
-from typing import Dict, Any, Set, List
+import re
+import threading
+from typing import Dict, Any, Set, List, Optional
 
 from .base_action import ActionModule
 
@@ -10,6 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 class SystemActionModule(ActionModule):
+    # Class-level variables to hold active shutdown timer thread
+    _active_timer: Optional[threading.Timer] = None
+    _timer_lock = threading.Lock()
+
     """
     Módulo de acción para ejecutar programas del sistema operativo.
 
@@ -125,11 +131,143 @@ class SystemActionModule(ActionModule):
 
         return True
 
-    def execute(self, entities: Dict[str, Any]) -> bool:
-        if not self.validate_entities(entities):
+    @classmethod
+    def cancel_shutdown(cls) -> bool:
+        """Cancela un apagado programado si existe alguno activo."""
+        with cls._timer_lock:
+            if cls._active_timer is not None:
+                cls._active_timer.cancel()
+                cls._active_timer = None
+                return True
             return False
 
-        command: str = entities["programa"].strip()
+    @classmethod
+    def schedule_shutdown(cls, seconds: int, qty: int, unit_label: str) -> None:
+        """Programa un apagado del sistema mediante systemctl poweroff."""
+        def perform_shutdown():
+            logger.warning("El temporizador ha expirado. Ejecutando systemctl poweroff...")
+            try:
+                subprocess.Popen(["systemctl", "poweroff"])
+            except Exception as e:
+                logger.error(f"Error al ejecutar el apagado del sistema: {e}")
+
+        with cls._timer_lock:
+            if cls._active_timer is not None:
+                cls._active_timer.cancel()
+                logger.info("Cancelando el apagado programado anterior para establecer uno nuevo.")
+            
+            cls._active_timer = threading.Timer(seconds, perform_shutdown)
+            cls._active_timer.daemon = True
+            cls._active_timer.start()
+
+        # Feedback de voz y logs
+        msg = f"Apagado programado en {qty} {unit_label}."
+        logger.warning(msg)
+        try:
+            from core import tts
+            tts.say(msg)
+        except Exception as e:
+            logger.error(f"Error al reproducir TTS: {e}")
+
+    def _parse_deferred_shutdown(self, text: str) -> Optional[Dict[str, Any]]:
+        """
+        Analiza el texto para detectar comandos de apagado diferido.
+        Soporta minutos, horas y números en español.
+        """
+        text_lower = text.lower().strip()
+        
+        # Verificar que sea un comando de apagado
+        if not any(k in text_lower for k in ["apaga", "apagar", "shutdown", "poweroff"]):
+            return None
+            
+        spanish_numbers = {
+            "un": 1, "una": 1, "uno": 1, "dos": 2, "tres": 3,
+            "cuatro": 4, "cinco": 5, "seis": 6, "siete": 7,
+            "ocho": 8, "nueve": 9, "diez": 10, "quince": 15,
+            "veinte": 20, "treinta": 30, "cuarenta": 40,
+            "cincuenta": 50
+        }
+        
+        # Regex para capturar la cantidad y la unidad (minutos, horas, etc.)
+        pattern = r"(?:en|dentro de|dentro)\s+(?P<cantidad>\d+|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|quince|veinte|treinta|cuarenta|cincuenta)\s+(?P<unidad>minuto|minutos|min|hora|horas|h)"
+        match = re.search(pattern, text_lower)
+        
+        if match:
+            qty_str = match.group("cantidad")
+            unit_str = match.group("unidad")
+            
+            if qty_str.isdigit():
+                qty = int(qty_str)
+            else:
+                qty = spanish_numbers.get(qty_str, 1)
+                
+            if "min" in unit_str:
+                seconds = qty * 60
+                unit_label = "minuto" if qty == 1 else "minutos"
+            elif "hor" in unit_str or unit_str == "h":
+                seconds = qty * 3600
+                unit_label = "hora" if qty == 1 else "horas"
+            else:
+                seconds = qty
+                unit_label = "segundos"
+                
+            return {
+                "delay_seconds": seconds,
+                "quantity": qty,
+                "unit": unit_label
+            }
+            
+        # Si no se especifica tiempo pero se solicita explícitamente apagar la PC,
+        # programar para 60 segundos por seguridad (permitiendo cancelación si fue un error).
+        if any(k in text_lower for k in ["apaga la pc", "apagar la pc", "apagar el sistema"]):
+            return {
+                "delay_seconds": 60,
+                "quantity": 1,
+                "unit": "minuto"
+            }
+            
+        return None
+
+    def execute(self, entities: Dict[str, Any]) -> bool:
+        # Obtener el comando e inyectar el texto original de forma segura
+        command: str = entities.get("programa", "").strip()
+        raw_text: str = entities.get("_raw_text", "").strip()
+        
+        combined_text = (command + " " + raw_text).lower()
+
+        # 1. Comprobar si se solicita la cancelación de un apagado
+        if any(k in combined_text for k in ["cancela", "cancelar"]) and any(k in combined_text for k in ["apaga", "apagado"]):
+            if self.cancel_shutdown():
+                msg = "El apagado programado ha sido cancelado."
+                logger.info(msg)
+                try:
+                    from core import tts
+                    tts.say(msg)
+                except Exception:
+                    pass
+            else:
+                msg = "No hay ningún apagado programado en este momento."
+                logger.warning(msg)
+                try:
+                    from core import tts
+                    tts.say(msg)
+                except Exception:
+                    pass
+            return True
+
+        # 2. Comprobar si se solicita un apagado programado diferido
+        shutdown_info = self._parse_deferred_shutdown(combined_text)
+        if shutdown_info:
+            self.schedule_shutdown(
+                seconds=shutdown_info["delay_seconds"],
+                qty=shutdown_info["quantity"],
+                unit_label=shutdown_info["unit"]
+            )
+            return True
+
+        # 3. Comandos normales (ejecutar aplicaciones normales de la whitelist)
+        if not self.validate_entities(entities):
+            return False
 
         if not self._is_safe_command(command):
             logger.error(f"Ejecución abortada por política de seguridad: '{command}'")
@@ -140,21 +278,13 @@ class SystemActionModule(ActionModule):
             args = shlex.split(command)
 
             # ── EL TRUCO PARA APPS DE TERMINAL (TUI) ──
-            # Si el programa base es cliamp (o cualquier otra app de terminal pura),
-            # lo envolvemos dinámicamente adentro de Alacritty.
-            # Nota: Esto se hace DESPUÉS de validar la seguridad, por lo que 
-            # la whitelist se sigue respetando perfectamente.
-            terminal_apps = ["cliamp"] # Podés sumar "htop", "btop", etc. en el futuro
-            
+            terminal_apps = ["cliamp"]
             if args[0] in terminal_apps:
                 logger.info(f"Spawneando nueva ventana de Alacritty para TUI: {args[0]}")
-                # Reconstruimos los argumentos: alacritty -e cliamp [args...]
                 args = ["alacritty", "-e"] + args
             else:
                 logger.info(f"Lanzando aplicación gráfica en segundo plano: {args}")
 
-            # Lanzamos el proceso silenciando TODAS las salidas para que ninguna app 
-            # (tenga interfaz o no) ensucie la consola padre de Viernes.
             subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return True
 

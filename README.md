@@ -9,16 +9,19 @@ A diferencia de los asistentes comerciales, Viernes no depende de servicios de p
 ## ✨ Características Principales
 
 * **🧠 Procesamiento Local:** Clasificación de lenguaje natural y extracción de intenciones/entidades utilizando modelos de Ollama (ej: `qwen2.5:3b`) de forma 100% offline.
+* **🖥️ HUD Holográfico de Escritorio (Estilo Stark J.A.R.V.I.S./V.I.E.R.N.E.S.):** Rediseño completo de la interfaz local con CustomTkinter. Es una ventana flotante, semitransparente, frameless y arrastrable. Cuenta con un canvas animado 2D del Reactor de Arco que rota y pulsa en tiempo real según el estado del asistente (ESCUCHANDO, GRABANDO, PROCESANDO, INACTIVO) y un control deslizante interactivo para ajustar el umbral de sensibilidad del Noise Gate.
 * **🌐 Respuestas Conversacionales Dinámicas:** Módulo capaz de responder preguntas de conocimiento general y de tiempo real. 
   - **Consultas estáticas/históricas:** Utiliza la base de conocimientos nativa del LLM local (ej: *"¿cuántos goles hizo Messi en 2012?"*).
   - **Consultas en tiempo real:** Raspa automáticamente fragmentos de internet de forma gratuita con **DuckDuckGo** y los sintetiza con Qwen (ej: *"¿contra quién juega River el sábado?"* o *"¿qué día es hoy?"* con inyección dinámica del reloj del sistema).
 * **⛓️ Encadenamiento de Comandos ("AND"):** Soporta secuencias de órdenes en una sola frase (ej: *"busca el último video de Hytale en youtube, ponelo en pantalla completa y subí el volumen"*).
 * **⏳ Pausas de Carga Inteligentes:** Al ejecutar cadenas de comandos, el orquestador espera de forma inteligente **2.5 segundos** después de abrir aplicaciones gráficas pesadas (Brave, YouTube, Steam) para darles tiempo a cargar y tomar foco, y **0.5 segundos** entre macros de teclado simples.
 * **⚡ Cortocircuito de Macros (Reflejo):** Sistema de reflejos de coincidencia difusa (`rapidfuzz`) de alta velocidad. Si detecta comandos exactos o fonéticos de volumen, reproducción o control, los ejecuta en milisegundos sin invocar a la IA.
-* **📱 Control Remoto Web por Red Local (PWA & HTTPS):** Servidor FastAPI + WebSocket integrado con HTTPS seguro (certificados SSL autofirmados generados de forma automática en `.kiro/`). Permite:
+* **🔈 Atenuación de Audio en Activación (Ducking):** Al detectar la palabra de activación, Viernes reduce de inmediato el volumen general del sistema al 10%. Esto evita que el micrófono capte interferencias del audio de la PC y mejora sustancialmente la precisión de transcripción de Whisper. El volumen original se restaura automáticamente una vez ejecutada la orden.
+* **📱 Control Remoto Web por Red Local (PWA & HTTPS Seguro):** Servidor FastAPI + WebSocket integrado con HTTPS seguro (certificados SSL autofirmados generados de forma automática en `.kiro/` con soporte SAN). Permite:
   - **Soporte PWA:** Aplicación Web Progresiva instalable en iOS y Android con almacenamiento en caché offline mediante Service Worker (`static/sw.js`).
   - **Certificados SSL Automáticos con SAN:** Generación automática de certificados SSL autofirmados inyectando la dirección IP LAN dinámica actual en los campos Subject Alternative Names (SAN). Esto permite el acceso HTTPS seguro, obligatorio en navegadores móviles modernos para otorgar permisos de micrófono (`getUserMedia`).
-  - **Asistente de Confianza SSL:** Guía interactiva (`scripts/setup_ssl_trust.sh`) y documentación (`scripts/SSL_TRUST_GUIDE.md`) para instalar y confiar en el certificado en iOS y Android.
+  - **Emparejamiento Seguro (JWT + PIN/QR):** Las conexiones y APIs de configuración están protegidas mediante JSON Web Tokens (JWT) firmados con criptografía asimétrica RS256. El cliente móvil debe emparejarse escaneando un código QR dinámico desde la interfaz HUD de la PC o ingresando manualmente un PIN de 6 dígitos.
+  - **Redirección de Voz Móvil (Mobile TTS):** Si el micrófono del móvil está seleccionado como la entrada activa, la síntesis de voz se redirige directamente a los altavoces del móvil por WebSockets, utilizando la API Web Speech del navegador (con desbloqueo específico en iOS Safari).
   - Ver el estado del asistente en tiempo real (IDLE, grabando, procesando).
   - Usar la entrada de micrófono del móvil (iPhone/Android) para enviar notas de voz que se transcriben en la PC usando Whisper.
   - Controlar volumen de forma bidireccional mediante sliders.
@@ -136,6 +139,13 @@ El ejecutable resultante estará en `dist/viernes/viernes`. Puedes crear un ataj
 ```bash
 /home/tu_usuario/Ruta/AI-Asistent/dist/viernes/viernes
 ```
+
+### Ejecutar Pruebas Unitarias
+El proyecto cuenta con suites de pruebas automáticas para validar el comportamiento del despachador, del parser de intenciones y de la seguridad del servidor web. Ejecútalas dentro de tu entorno virtual con:
+```bash
+PYTHONPATH=. venv/bin/pytest tests/
+```
+
 
 ---
 **Desarrollado con ☕ por Fernando Ortiz.**

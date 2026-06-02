@@ -1,7 +1,11 @@
 import unittest
+from unittest import IsolatedAsyncioTestCase
 from unittest.mock import MagicMock, patch, AsyncMock
 from fastapi.testclient import TestClient
 import jwt
+import asyncio
+import logging
+
 
 # Set environment variable or paths before importing if needed
 from core import web_server
@@ -134,6 +138,147 @@ class TestWebServerAuth(unittest.TestCase):
         
         # Verify JSON dump was called and assistant hot-reloading was triggered
         self.mock_assistant.reload_config.assert_called_once()
+
+class TestWebServerIntegrations(IsolatedAsyncioTestCase):
+    def setUp(self):
+        # Reset the globals to None before each test
+        web_server.fft_processor = None
+        web_server.telemetry_task = None
+        web_server.log_handler = None
+        web_server.download_watcher = None
+        web_server.clipboard_watcher = None
+        web_server.last_clipboard_value = None
+        self.original_broadcast = web_server.manager.broadcast
+        web_server.manager.broadcast = MagicMock()
+
+    def tearDown(self):
+        web_server.manager.broadcast = self.original_broadcast
+
+    @patch("core.web_server.start_fft_processor")
+    @patch("core.web_server.start_telemetry_loop")
+    @patch("core.web_server.start_logging_stream")
+    @patch("core.web_server.start_download_watcher")
+    @patch("core.web_server.start_clipboard_watcher")
+    async def test_connect_starts_services_on_first_client(
+        self, mock_start_clip, mock_start_dl, mock_start_log, mock_start_telem, mock_start_fft
+    ):
+        mock_websocket = AsyncMock()
+        manager = web_server.ConnectionManager()
+        
+        # Connect first client
+        await manager.connect(mock_websocket)
+        self.assertEqual(len(manager.active_connections), 1)
+        mock_start_fft.assert_called_once()
+        mock_start_telem.assert_called_once()
+        mock_start_log.assert_called_once()
+        mock_start_dl.assert_called_once()
+        mock_start_clip.assert_called_once()
+
+        # Connect second client - shouldn't start them again
+        mock_websocket2 = AsyncMock()
+        await manager.connect(mock_websocket2)
+        self.assertEqual(len(manager.active_connections), 2)
+        mock_start_fft.assert_called_once()  # still called only once
+
+    @patch("core.web_server.stop_fft_processor")
+    @patch("core.web_server.stop_telemetry_loop")
+    @patch("core.web_server.stop_logging_stream")
+    @patch("core.web_server.stop_download_watcher")
+    @patch("core.web_server.stop_clipboard_watcher")
+    async def test_disconnect_stops_services_on_last_client(
+        self, mock_stop_clip, mock_stop_dl, mock_stop_log, mock_stop_telem, mock_stop_fft
+    ):
+        mock_websocket = AsyncMock()
+        mock_websocket2 = AsyncMock()
+        manager = web_server.ConnectionManager()
+        manager.active_connections = [mock_websocket, mock_websocket2]
+
+        # Disconnect first client - shouldn't stop services yet
+        manager.disconnect(mock_websocket)
+        self.assertEqual(len(manager.active_connections), 1)
+        mock_stop_fft.assert_not_called()
+
+        # Disconnect last client - should stop all services
+        manager.disconnect(mock_websocket2)
+        self.assertEqual(len(manager.active_connections), 0)
+        mock_stop_fft.assert_called_once()
+        mock_stop_telem.assert_called_once()
+        mock_stop_log.assert_called_once()
+        mock_stop_dl.assert_called_once()
+        mock_stop_clip.assert_called_once()
+
+    @patch("core.web_server.manager.broadcast", new_callable=AsyncMock)
+    @patch("core.telemetry.get_system_telemetry")
+    async def test_telemetry_loop(self, mock_get_telemetry, mock_broadcast):
+        mock_get_telemetry.return_value = {"cpu": {"usage_percent": 10}}
+        
+        task = asyncio.create_task(web_server.telemetry_loop())
+        await asyncio.sleep(0.1)
+        task.cancel()
+        
+        mock_get_telemetry.assert_called()
+        mock_broadcast.assert_called_with({"type": "telemetry", "data": mock_get_telemetry.return_value})
+
+    @patch("asyncio.run_coroutine_threadsafe")
+    def test_log_handler_broadcasts(self, mock_run_coroutine):
+        mock_loop = MagicMock()
+        web_server.uvicorn_loop = mock_loop
+        
+        handler = web_server.WebSocketLogHandler()
+        record = logging.LogRecord(
+            name="test_logger",
+            level=logging.INFO,
+            pathname="test_path",
+            lineno=10,
+            msg="Hello, world!",
+            args=None,
+            exc_info=None
+        )
+        handler.emit(record)
+        mock_run_coroutine.assert_called_once()
+        args, kwargs = mock_run_coroutine.call_args
+        self.assertEqual(args[1], mock_loop)
+
+    @patch("asyncio.run_coroutine_threadsafe")
+    def test_download_callback(self, mock_run_coroutine):
+        mock_loop = MagicMock()
+        web_server.uvicorn_loop = mock_loop
+        
+        web_server.download_callback("/home/user/Downloads/test_file.zip")
+        mock_run_coroutine.assert_called_once()
+        args, kwargs = mock_run_coroutine.call_args
+        self.assertEqual(args[1], mock_loop)
+
+    @patch("pyperclip.copy")
+    def test_clipboard_set_local(self, mock_pyperclip_copy):
+        web_server.set_local_clipboard("hello world")
+        self.assertEqual(web_server.last_clipboard_value, "hello world")
+        mock_pyperclip_copy.assert_called_once_with("hello world")
+
+    @patch("asyncio.run_coroutine_threadsafe")
+    def test_handle_clipboard_change_broadcasts(self, mock_run_coroutine):
+        mock_loop = MagicMock()
+        web_server.uvicorn_loop = mock_loop
+        
+        # Test change
+        web_server.last_clipboard_value = "old"
+        web_server.handle_clipboard_change("new")
+        self.assertEqual(web_server.last_clipboard_value, "new")
+        mock_run_coroutine.assert_called_once()
+        args, kwargs = mock_run_coroutine.call_args
+        self.assertEqual(args[1], mock_loop)
+        
+        # Test no change (should be ignored)
+        mock_run_coroutine.reset_mock()
+        web_server.handle_clipboard_change("new")
+        mock_run_coroutine.assert_not_called()
+
+    @patch("pyperclip.paste")
+    def test_get_local_clipboard(self, mock_pyperclip_paste):
+        mock_pyperclip_paste.return_value = "hello clipboard"
+        val = web_server.get_local_clipboard()
+        self.assertEqual(val, "hello clipboard")
+        mock_pyperclip_paste.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()

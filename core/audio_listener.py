@@ -123,8 +123,8 @@ def silence_stderr():
 
 class DummyRecognizer:
     """Clase dummy para mantener compatibilidad con la interfaz de sensibilidad de la GUI."""
-    def __init__(self):
-        self.energy_threshold = 1500
+    def __init__(self, default_threshold=800):
+        self.energy_threshold = default_threshold
 
 class AudioListener:
     """
@@ -168,7 +168,7 @@ class AudioListener:
         self.noise_gate_threshold: int = config.get("noise_gate_threshold", 400)
 
         # Inicializar el dummy recognizer para compatibilidad de interfaz con la GUI
-        self.recognizer = DummyRecognizer()
+        self.recognizer = DummyRecognizer(config.get("energy_threshold", 800))
 
         # Determinar el código corto de idioma (es, en, etc.)
         lang_code = self.language.split("-")[0]
