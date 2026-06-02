@@ -96,6 +96,10 @@ class ViernesAssistant:
         self.listener   = AudioListener(config, state_callback=self.notify_state)
         self.parser     = IntentParser(config=config)
         self.dispatcher = Dispatcher(config=config)
+        self.dispatcher.assistant = self
+
+        from core.pomodoro import PomodoroTimer
+        self.pomodoro = PomodoroTimer(self)
 
         # Iniciar servidor web de control remoto
         self._start_web_server()
@@ -171,6 +175,46 @@ class ViernesAssistant:
             logger.info("Configuración recargada exitosamente en todos los subsistemas.")
         except Exception as e:
             logger.error(f"Error al recargar la configuración: {e}")
+
+    def activate_scene(self, scene_name: str) -> bool:
+        """Activa un escenario ejecutando sus acciones correspondientes."""
+        logger.info(f"Activando escenario: {scene_name}")
+        scenes = self.config.get("scenes", [])
+        scene = None
+        for s in scenes:
+            if s.get("name") == scene_name:
+                scene = s
+                break
+        if not scene:
+            logger.warning(f"Escenario no encontrado: {scene_name}")
+            return False
+
+        actions = scene.get("actions", [])
+        if actions:
+            try:
+                from actions.keyboard_automation_action import KeyboardAutomationModule
+                kam = KeyboardAutomationModule(config=self.config)
+                
+                def run_scene_actions():
+                    if isinstance(actions, str):
+                        kam._execute_string_macro(actions)
+                    else:
+                        active_win = kam._get_active_window()
+                        active_class = active_win.get("class", "").lower()
+                        for action in actions:
+                            kam._run_action(action, active_class)
+                
+                threading.Thread(target=run_scene_actions, daemon=True).start()
+            except Exception as e:
+                logger.error(f"Error al ejecutar acciones del escenario: {e}")
+
+        # Si el escenario es de estudio, iniciar Pomodoro
+        name_lower = scene_name.lower()
+        if "estudiar" in name_lower or "study" in name_lower:
+            if hasattr(self, "pomodoro"):
+                self.pomodoro.start()
+
+        return True
 
     def _start_web_server(self) -> None:
         """Inicia el servidor FastAPI en un hilo separado para control remoto LAN."""

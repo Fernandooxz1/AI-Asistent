@@ -13,7 +13,9 @@
     "reproducir_youtube": "YoutubePlayActionModule",
     "lanzar_juego": "GameLauncherModule",
     "automatizacion_teclado": "KeyboardAutomationModule",
-    "conversar": "ConversationalModule"
+    "conversar": "ConversationalModule",
+    "activar_escenario": "SceneActionModule",
+    "cerrar_ventana": "WindowControlActionModule"
   },
   "whitelist_apps": [
     "brave",
@@ -23,7 +25,8 @@
     "libreoffice",
     "cliamp",
     "discord",
-    "steam"
+    "steam",
+    "omarchy-launch-webapp"
   ],
   "intents": {
     "abrir_aplicacion": "Para abrir aplicaciones locales del sistema (ej: brave, nautilus, code, discord, steam).",
@@ -31,7 +34,9 @@
     "reproducir_youtube": "Para buscar y reproducir directamente videos o música en YouTube (ej: 'reproducir música de los 80', 'pone el ultimo video de davo').",
     "lanzar_juego": "Para iniciar videojuegos de Steam u otras plataformas (ej: 'abrir resident evil 8', 'lanzar dragon ball sparking zero').",
     "automatizacion_teclado": "Para ejecutar atajos o macros de teclado (ej: 'pausa', 'pantalla completa', 'modo cine', 'subir volumen').",
-    "conversar": "Para preguntas generales, charlas o solicitudes de información hablada que NO requieran abrir una ventana o sitio web en la pantalla del navegador (ej: 'quién es Messi', 'cuánto es 2+2', 'cómo está el clima hoy' para recibir una respuesta hablada)."
+    "conversar": "Para preguntas generales, charlas o solicitudes de información hablada que NO requieran abrir una ventana o sitio web en la pantalla del navegador (ej: 'quién es Messi', 'cuánto es 2+2', 'cómo está el clima hoy' para recibir una respuesta hablada).",
+    "activar_escenario": "Para activar escenarios o perfiles del sistema como estudio, gaming, o trabajo (ej: 'activar modo estudio', 'poner escenario gaming', 'modo trabajo').",
+    "cerrar_ventana": "Para cerrar ventanas abiertas en cualquier espacio de trabajo (ej: 'cerrá el stream de Davo', 'cerrar ventana alacritty', 'cerrar brave')."
   },
   "keyboard_macros": {
     "pantalla completa": [
@@ -128,5 +133,31 @@
     "cerrar ventana": "cierra la ventana",
     "sierra la ventana": "cierra la ventana",
     "sierra ventana": "cierra la ventana"
+  },
+  "scenes": {
+    "estudio": {
+      "close_processes": ["discord", "steam"],
+      "open_apps": [
+        "omarchy-launch-webapp https://notebooklm.google.com/",
+        "omarchy-launch-webapp https://gemini.google.com/app?hl=es"
+      ],
+      "macros": [
+        "pone musica",
+        "SUPER + CTRL + N"
+      ],
+      "pomodoro": true
+    },
+    "gaming": {
+      "close_processes": ["chrome", "brave", "firefox", "slack", "code", "typora", "obsidian", "alacritty", "kitty", "foot", "ghostty"],
+      "open_apps": ["steam"]
+    },
+    "trabajo": {
+      "open_apps": [
+        "alacritty -e agy",
+        "omarchy-launch-webapp https://gemini.google.com/app?hl=es",
+        "brave https://youtube.com"
+      ],
+      "youtube_play": "mix de Ariel coronel"
+    }
   }
 }

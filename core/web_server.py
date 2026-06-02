@@ -331,6 +331,15 @@ class ConnectionManager:
             await websocket.send_json({"type": "volume", "value": vol})
         except Exception:
             pass
+        # Enviar el estado actual del Pomodoro al conectarse
+        try:
+            if assistant_instance and hasattr(assistant_instance, "pomodoro"):
+                await websocket.send_json({
+                    "type": "pomodoro",
+                    "data": assistant_instance.pomodoro.get_status()
+                })
+        except Exception:
+            pass
         # Enviar el valor actual del portapapeles al conectar
         try:
             curr_clip = get_local_clipboard()
@@ -568,7 +577,8 @@ async def get_config(token_payload: dict = Depends(verify_jwt_token)):
         "keyboard_macros": assistant_instance.config.get("keyboard_macros", {}),
         "phonetics": assistant_instance.config.get("phonetics", {}),
         "whitelist_apps": assistant_instance.config.get("whitelist_apps", []),
-        "games": assistant_instance.config.get("games", {})
+        "games": assistant_instance.config.get("games", {}),
+        "scenes": assistant_instance.config.get("scenes", [])
     }
 
 @app.post("/api/config")
@@ -590,6 +600,8 @@ async def post_config(new_data: dict, token_payload: dict = Depends(verify_jwt_t
             current_config["whitelist_apps"] = new_data["whitelist_apps"]
         if "games" in new_data:
             current_config["games"] = new_data["games"]
+        if "scenes" in new_data:
+            current_config["scenes"] = new_data["scenes"]
             
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(current_config, f, indent=2, ensure_ascii=False)
@@ -599,6 +611,20 @@ async def post_config(new_data: dict, token_payload: dict = Depends(verify_jwt_t
     except Exception as e:
         logger.error(f"Error saving config via API: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/scenes/activate")
+async def activate_scene_endpoint(payload: dict, token_payload: dict = Depends(verify_jwt_token)):
+    global assistant_instance
+    if not assistant_instance:
+        raise HTTPException(status_code=503, detail="Assistant not initialized")
+    scene_name = payload.get("name")
+    if not scene_name:
+        raise HTTPException(status_code=400, detail="Missing scene name")
+    success = assistant_instance.activate_scene(scene_name)
+    if success:
+        return {"status": "success"}
+    else:
+        raise HTTPException(status_code=404, detail="Scene not found")
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = Query(None)):
@@ -714,6 +740,21 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = Query(
                         args=(text,),
                         daemon=True
                     ).start()
+
+                elif event_type == "pomodoro_control":
+                    action = data.get("action")
+                    if assistant_instance and hasattr(assistant_instance, "pomodoro"):
+                        if action == "start":
+                            assistant_instance.pomodoro.start()
+                        elif action == "pause":
+                            assistant_instance.pomodoro.pause()
+                        elif action == "reset":
+                            assistant_instance.pomodoro.reset()
+
+                elif event_type == "activate_scene":
+                    scene_name = data.get("name")
+                    if assistant_instance and scene_name:
+                        assistant_instance.activate_scene(scene_name)
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)

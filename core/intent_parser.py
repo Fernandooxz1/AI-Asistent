@@ -46,6 +46,25 @@ DEFAULT_TEMPLATES = {
         r"lanzar (?P<juego>[a-zA-Z0-9_\-\s]+)",
         r"jugar (?P<juego>[a-zA-Z0-9_\-\s]+)",
         r"jugar al (?P<juego>[a-zA-Z0-9_\-\s]+)"
+    ],
+    "activar_escenario": [
+        r"activar (?:el )?(?:modo |escenario )?(?P<escenario>[a-zA-Z0-9_\-\s]+)",
+        r"poner (?:el )?(?:modo |escenario )?(?P<escenario>[a-zA-Z0-9_\-\s]+)",
+        r"modo (?P<escenario>[a-zA-Z0-9_\-\s]+)"
+    ],
+    "cerrar_ventana": [
+        r"cerrar la ventana de (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
+        r"cierra la ventana de (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
+        r"cerra la ventana de (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
+        r"cerrar el stream de (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
+        r"cierra el stream de (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
+        r"cerra el stream de (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
+        r"cerrar la ventana (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
+        r"cierra la ventana (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
+        r"cerra la ventana (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
+        r"cerrar (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
+        r"cierra (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
+        r"cerra (?P<ventana_query>[a-zA-Z0-9_\-\s]+)"
     ]
 }
 
@@ -182,6 +201,25 @@ class IntentParser:
                     entities["_raw_text"] = text
                     return {"intent": "abrir_navegador", "entities": entities}
                 
+                elif "escenario" in entities:
+                    esc = entities["escenario"].lower().strip()
+                    scenes = self.config.get("scenes", {})
+                    matched_scene = None
+                    for scene_name in scenes.keys():
+                        if scene_name.lower() == esc:
+                            matched_scene = scene_name
+                            break
+                    if matched_scene:
+                        entities["escenario"] = matched_scene
+                        entities["_raw_text"] = text
+                        return {"intent": "activar_escenario", "entities": entities}
+                    else:
+                        continue
+
+                elif "ventana_query" in entities:
+                    entities["_raw_text"] = text
+                    return {"intent": "cerrar_ventana", "entities": entities}
+
                 elif "busqueda" in entities:
                     busq = entities["busqueda"].strip()
                     if busq.lower().startswith("a "):
@@ -323,6 +361,8 @@ class IntentParser:
         - respuesta: La respuesta directa a la pregunta o comentario general del usuario (SÓLO si necesita_busqueda es "false").
         - necesita_busqueda: "true" si la pregunta del usuario requiere buscar en internet información del presente o tiempo real (clima, partidos, noticias recientes); "false" de lo contrario (preguntas históricas, chistes, charla casual o datos estáticos).
         - macro: El nombre de la macro de teclado que mejor coincida semánticamente con la orden del usuario. Debe ser estrictamente uno de los siguientes valores exactos: {macros_permitidas}.
+        - escenario: Nombre del escenario o perfil a activar (ej: estudio, gaming, trabajo).
+        - ventana_query: Nombre, parte del título o clase de la ventana que se desea cerrar (ej: davo, alacritty, brave).
 
         REGLAS CRÍTICAS:
         1. Responde SIEMPRE y ÚNICAMENTE con un objeto JSON válido que contenga una única clave "intents". El valor de "intents" debe ser estrictamente un ARRAY (lista) de objetos JSON de acciones, respetando el orden secuencial. Esto aplica tanto si hay un solo comando como si hay múltiples.
@@ -432,6 +472,32 @@ class IntentParser:
                     "entities": {{
                         "plataforma": "kick",
                         "creador": "davo"
+                    }}
+                }}
+            ]
+        }}
+
+        EJEMPLO 7 (Activar escenario):
+        Pregunta: "poner modo estudio" ->
+        {{
+            "intents": [
+                {{
+                    "intent": "activar_escenario",
+                    "entities": {{
+                        "escenario": "estudio"
+                    }}
+                }}
+            ]
+        }}
+
+        EJEMPLO 8 (Cerrar ventana):
+        Pregunta: "cerrar ventana de brave" ->
+        {{
+            "intents": [
+                {{
+                    "intent": "cerrar_ventana",
+                    "entities": {{
+                        "ventana_query": "brave"
                     }}
                 }}
             ]

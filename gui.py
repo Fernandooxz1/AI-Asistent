@@ -216,6 +216,15 @@ class ViernesGUI(ctk.CTk):
         )
         self._status_label.pack(pady=5)
 
+        # Etiqueta de Pomodoro
+        self._pomodoro_label = ctk.CTkLabel(
+            self.main_frame,
+            text="🍅 POMODORO: INACTIVO",
+            font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+            text_color=_TEXT_DIM
+        )
+        self._pomodoro_label.pack(pady=(2, 5))
+
         # Slider de Sensibilidad
         slider_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         slider_frame.pack(fill="x", padx=30, pady=5)
@@ -364,6 +373,14 @@ class ViernesGUI(ctk.CTk):
         self.canvas.create_oval(cx-pulse_size-5, cy-pulse_size-5, cx+pulse_size+5, cy+pulse_size+5, outline=self._accent_color, width=1)
         self.canvas.create_oval(cx-pulse_size, cy-pulse_size, cx+pulse_size, cy+pulse_size, fill=self._accent_color, outline="")
 
+        # Arco de progreso Pomodoro alrededor del núcleo
+        if hasattr(self.assistant, "pomodoro"):
+            pomo = self.assistant.pomodoro.get_status()
+            if pomo["active"]:
+                angle_extent = 360 * (pomo["time_left"] / pomo["duration"])
+                pomo_color = "#00f3ff" if pomo["state"] == "work" else "#ff9500"
+                self.canvas.create_arc(cx-52, cy-52, cx+52, cy+52, start=90, extent=-angle_extent, outline=pomo_color, width=3, style="arc")
+
         # Textos informativos de telemetría HUD
         self.canvas.create_text(cx-68, cy+78, text="HUD: ACTV", fill="#182c44", font=("Courier", 7, "bold"))
         self.canvas.create_text(cx+58, cy+78, text=f"ROT:{int(self._hud_angle)}", fill="#182c44", font=("Courier", 7, "bold"))
@@ -379,6 +396,22 @@ class ViernesGUI(ctk.CTk):
         if self._assistant_thread.is_alive():
             energy = int(self.assistant.listener.recognizer.energy_threshold)
             self._sensitivity_label.configure(text=str(energy))
+            if hasattr(self.assistant, "pomodoro"):
+                pomo = self.assistant.pomodoro.get_status()
+                if pomo["active"]:
+                    mins = pomo["time_left"] // 60
+                    secs = pomo["time_left"] % 60
+                    state_str = "TRABAJO" if pomo["state"] == "work" else "DESCANSO"
+                    color = "#00f3ff" if pomo["state"] == "work" else "#ff9500"
+                    self._pomodoro_label.configure(
+                        text=f"🍅 {state_str}: {mins:02d}:{secs:02d}",
+                        text_color=color
+                    )
+                else:
+                    self._pomodoro_label.configure(
+                        text="🍅 POMODORO: INACTIVO",
+                        text_color=_TEXT_DIM
+                    )
         else:
             self._status_label.configure(text="DESCONECTADO", text_color=_ERROR)
         self.after(500, self._poll_status)

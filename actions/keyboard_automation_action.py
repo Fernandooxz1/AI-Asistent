@@ -280,6 +280,15 @@ class KeyboardAutomationModule:
             else:
                 for action in macro_actions:
                     self._run_action(action, active_class)
+
+            # Si la macro ejecutada es de estudio, iniciar Pomodoro
+            if macro_entidad:
+                macro_lower = macro_entidad.lower()
+                if "estudiar" in macro_lower or "study" in macro_lower:
+                    if hasattr(self, "assistant") and self.assistant:
+                        if hasattr(self.assistant, "pomodoro"):
+                            self.assistant.pomodoro.start()
+
             return True
         except Exception as e:
             logger.error(f"Error crítico al ejecutar la macro de teclado: {e}")

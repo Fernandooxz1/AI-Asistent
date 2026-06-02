@@ -60,6 +60,8 @@ class Dispatcher:
                 from actions.game_launcher_action import GameLauncherModule
                 from actions.keyboard_automation_action import KeyboardAutomationModule
                 from actions.conversational_action import ConversationalModule
+                from actions.scene_action import SceneActionModule
+                from actions.window_control_action import WindowControlActionModule
                 
                 # Llenamos el diccionario interno manualmente con las clases importadas
                 self.modules["SystemActionModule"] = SystemActionModule
@@ -68,6 +70,8 @@ class Dispatcher:
                 self.modules["GameLauncherModule"] = GameLauncherModule
                 self.modules["KeyboardAutomationModule"] = KeyboardAutomationModule
                 self.modules["ConversationalModule"] = ConversationalModule
+                self.modules["SceneActionModule"] = SceneActionModule
+                self.modules["WindowControlActionModule"] = WindowControlActionModule
                 logger.info("[Dispatcher] Módulos cargados estáticamente en modo frozen con éxito.")
                 return
             except ImportError as e:
@@ -131,6 +135,8 @@ class Dispatcher:
                 if not getattr(self, "suppress_beep", False):
                     play_sound("success.wav")  # Retroalimentación auditiva
                 instance = action_class(config=self.config)
+                if hasattr(self, "assistant"):
+                    instance.assistant = self.assistant
                 instance.execute(entities)
             except Exception as e:
                 logger.error(f"Error en ejecución de {class_name}: {e}")
