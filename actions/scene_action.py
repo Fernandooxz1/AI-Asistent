@@ -168,27 +168,32 @@ class SceneActionModule(ActionModule):
 
         # ── 7. TEMPORIZADOR DE POMODORO (pomodoro) ──
         if scene_config.get("pomodoro") or scene_config.get("pomodoro_enabled"):
-            logger.info("Tratando de iniciar Pomodoro de forma dinámica...")
+            logger.info("Tratando de iniciar Pomodoro...")
             try:
-                pomodoro_module = None
-                pomodoro_class = None
-                for mod_name in ["actions.pomodoro_action", "actions.pomodoro"]:
-                    try:
-                        pomodoro_module = importlib.import_module(mod_name)
-                        break
-                    except ImportError:
-                        continue
-                if pomodoro_module:
-                    for cls_name in ["PomodoroActionModule", "PomodoroModule"]:
-                        if hasattr(pomodoro_module, cls_name):
-                            pomodoro_class = getattr(pomodoro_module, cls_name)
-                            break
-                if pomodoro_class:
-                    logger.info("Instanciando y ejecutando módulo de Pomodoro...")
-                    pomo_instance = pomodoro_class(config=self.config)
-                    pomo_instance.execute({})
+                if hasattr(self, "assistant") and self.assistant and hasattr(self.assistant, "pomodoro"):
+                    logger.info("Iniciando Pomodoro directamente a través del asistente.")
+                    self.assistant.pomodoro.start()
                 else:
-                    logger.warning("Pomodoro habilitado pero no se encontró la clase de acción de Pomodoro.")
+                    logger.info("Iniciando Pomodoro de forma dinámica (modo test/fallback)...")
+                    pomodoro_module = None
+                    pomodoro_class = None
+                    for mod_name in ["actions.pomodoro_action", "actions.pomodoro"]:
+                        try:
+                            pomodoro_module = importlib.import_module(mod_name)
+                            break
+                        except ImportError:
+                            continue
+                    if pomodoro_module:
+                        for cls_name in ["PomodoroActionModule", "PomodoroModule"]:
+                            if hasattr(pomodoro_module, cls_name):
+                                pomodoro_class = getattr(pomodoro_module, cls_name)
+                                break
+                    if pomodoro_class:
+                        logger.info("Instanciando y ejecutando módulo de Pomodoro...")
+                        pomo_instance = pomodoro_class(config=self.config)
+                        pomo_instance.execute({})
+                    else:
+                        logger.warning("Pomodoro habilitado pero no se encontró la clase de acción de Pomodoro o la referencia del asistente.")
             except Exception as e:
                 logger.error(f"Error al iniciar el Pomodoro: {e}")
 
