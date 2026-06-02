@@ -304,7 +304,7 @@ class ViernesGUI(ctk.CTk):
             self._pulse_max_offset = 12
             status_text = "CAPTURANDO VOZ..."
         elif estado == "PROCESANDO":
-            self._accent_color = "#bf5af2"       # Violeta
+            self._accent_color = "#00a2ff"       # Azul Neón
             self._accent_secondary = "#00f3ff"
             self._anim_speed = 4
             self._pulse_speed = 2.0
