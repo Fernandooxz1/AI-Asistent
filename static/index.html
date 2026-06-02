@@ -1178,6 +1178,288 @@
     .home-indicator-container {
       display: none !important;
     }
+
+    /* Access Locked Overlay style */
+    .lock-screen-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 7, 12, 0.85);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 24px;
+      text-align: center;
+      box-sizing: border-box;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .lock-screen-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .lock-icon-container {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(255, 69, 58, 0.1);
+      border: 1px solid rgba(255, 69, 58, 0.25);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 24px;
+      box-shadow: 0 0 25px rgba(255, 69, 58, 0.15);
+      animation: pulse-lock-glow 2s infinite alternate ease-in-out;
+    }
+    
+    @keyframes pulse-lock-glow {
+      0% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 69, 58, 0.15); }
+      100% { transform: scale(1.06); box-shadow: 0 0 35px rgba(255, 69, 58, 0.35); }
+    }
+    
+    .lock-icon-container svg {
+      width: 32px;
+      height: 32px;
+      color: var(--accent-red);
+    }
+    
+    .lock-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 70%, rgba(255, 255, 255, 0.6));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .lock-subtitle {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      max-width: 300px;
+      margin-bottom: 24px;
+    }
+    
+    .lock-pin-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 24px;
+    }
+    .lock-pin-btn:active {
+      transform: scale(0.96);
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .lock-pin-container {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      width: 100%;
+      max-width: 280px;
+      justify-content: center;
+      align-items: center;
+    }
+    .lock-pin-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: #fff;
+      font-family: 'Consolas', monospace;
+      font-size: 16px;
+      text-align: center;
+      letter-spacing: 2px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .lock-pin-input::placeholder {
+      font-family: inherit;
+      letter-spacing: normal;
+      font-size: 14px;
+      color: var(--text-tertiary);
+    }
+    .lock-pin-input:focus {
+      border-color: var(--accent-blue);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .lock-submit-btn {
+      background: var(--accent-blue);
+      border: none;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lock-submit-btn:active {
+      transform: scale(0.96);
+      opacity: 0.9;
+    }
+    
+    .lock-divider {
+      width: 60px;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.12);
+      margin-bottom: 30px;
+    }
+    
+    .lock-footer svg {
+      width: 12px;
+      height: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* Automations Creator styles */
+    .automations-list {
+      max-height: 400px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-top: 10px;
+    }
+    .automations-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    .automations-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+    }
+    .auto-item {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+    .auto-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .auto-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .auto-item-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      text-transform: capitalize;
+    }
+    .auto-item-type {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 3px 6px;
+      border-radius: 6px;
+      background: rgba(10, 132, 255, 0.12);
+      color: var(--accent-blue);
+      border: 0.5px solid rgba(10, 132, 255, 0.25);
+    }
+    .auto-item-detail {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: 'Consolas', monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .auto-tags-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+      margin-bottom: 4px;
+    }
+    .auto-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .auto-tag-delete {
+      cursor: pointer;
+      color: var(--accent-red);
+      font-weight: bold;
+      font-size: 12px;
+      padding: 0 2px;
+      transition: opacity 0.2s;
+    }
+    .auto-tag-delete:hover {
+      opacity: 0.8;
+    }
+    .auto-item-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 4px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 8px;
+    }
+    .auto-action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.2s;
+      outline: none;
+    }
+    .auto-action-btn.edit {
+      color: var(--accent-blue);
+      background: rgba(10, 132, 255, 0.1);
+      border: 1px solid rgba(10, 132, 255, 0.08);
+    }
+    .auto-action-btn.edit:active {
+      transform: scale(0.95);
+      background: rgba(10, 132, 255, 0.2);
+    }
+    .auto-action-btn.delete {
+      color: var(--accent-red);
+      background: rgba(255, 69, 58, 0.1);
+      border: 1px solid rgba(255, 69, 58, 0.08);
+    }
+    .auto-action-btn.delete:active {
+      transform: scale(0.95);
+      background: rgba(255, 69, 58, 0.2);
+    }
   </style>
 </head>
 <body>
@@ -1200,13 +1482,23 @@
           <h1>Viernes Control</h1>
           <p>Local Assistant Voice Bridge</p>
         </div>
-        <!-- Settings Gear button -->
-        <button class="header-btn" id="settings-trigger" aria-label="Settings">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </button>
+        <div style="display: flex; gap: 8px;">
+          <!-- Automations Layers Button -->
+          <button class="header-btn" id="automations-trigger" aria-label="Automations" title="Automatizaciones">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
+            </svg>
+          </button>
+          <!-- Settings Gear button -->
+          <button class="header-btn" id="settings-trigger" aria-label="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
 
@@ -1441,6 +1733,154 @@
         </ul>
       </div>
 
+    </div>
+
+    <!-- Slide-Up Automations Drawer -->
+    <div class="settings-drawer" id="automations-drawer" style="max-height: 85%;">
+      <div class="drawer-handle" id="automations-close-handle"></div>
+      
+      <div class="drawer-header">
+        <h3 id="automations-drawer-title">Automatizaciones</h3>
+        <button class="drawer-close" id="automations-close-btn">Listo</button>
+      </div>
+
+      <!-- VIEW 1: LIST OF AUTOMATIONS -->
+      <div id="automations-list-view">
+        <button class="action-button active" id="btn-new-automation" style="width: 100%; margin-bottom: 16px; border-radius: 12px; justify-content: center; gap: 8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Nueva Automatización</span>
+        </button>
+        <div class="automations-list" id="automations-list-container">
+          <!-- Dynamic auto-item cards rendered via JS -->
+        </div>
+      </div>
+
+      <!-- VIEW 2: ADD/EDIT FORM -->
+      <div id="automations-form-view" style="display: none;">
+        <input type="hidden" id="form-original-name">
+        
+        <div class="control-row">
+          <div class="control-label-row">
+            <span>Nombre / Comando Primario</span>
+          </div>
+          <input type="text" id="form-auto-name" class="lock-pin-input" placeholder="Ej: pantalla completa" style="width: 100%; text-align: left; letter-spacing: normal; font-family: inherit;">
+          <span class="helper-text">La orden de voz principal que ejecuta esta automatización.</span>
+        </div>
+
+        <div class="control-row">
+          <div class="control-label-row">
+            <span>Variaciones / Variantes de Voz</span>
+          </div>
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" id="form-variant-input" class="lock-pin-input" placeholder="Ej: pantalla grande" style="flex: 1; text-align: left; letter-spacing: normal; font-family: inherit; font-size: 14px;">
+            <button id="btn-add-variant" class="lock-submit-btn" style="padding: 10px 14px;">Agregar</button>
+          </div>
+          <div class="auto-tags-container" id="form-variants-container">
+            <!-- Tag pills for voice variations -->
+          </div>
+          <span class="helper-text">Otras frases u opciones misheard que activarán esta misma acción.</span>
+        </div>
+
+        <div class="control-row">
+          <div class="control-label-row">
+            <span>Tipo de Acción</span>
+          </div>
+          <select class="ios-select" id="form-action-type">
+            <option value="ydotool">Simular Teclas (ydotool)</option>
+            <option value="comando">Ejecutar Comando de Consola</option>
+            <option value="abrir_aplicacion">Abrir Aplicación</option>
+            <option value="lanzar_juego">Lanzar Juego (Steam)</option>
+          </select>
+        </div>
+
+        <!-- ACTION DETAILS (DYNAMIC FIELDS) -->
+        <div id="action-details-container">
+          <!-- ydotool settings -->
+          <div class="action-fields" id="fields-ydotool">
+            <div class="control-row">
+              <div class="control-label-row">
+                <span>Argumentos de ydotool</span>
+              </div>
+              <input type="text" id="ydotool-args" class="lock-pin-input" placeholder="Ej: key 87:1 87:0" style="width: 100%; text-align: left; letter-spacing: normal; font-family: 'Consolas', monospace; font-size: 14px;">
+              <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px;" id="ydotool-helpers">
+                <!-- Keycode insertion buttons -->
+              </div>
+              <span class="helper-text" style="margin-top: 6px;">Escribe comandos de ydotool separados por espacio (ej: key 87:1 87:0).</span>
+            </div>
+          </div>
+
+          <!-- comando settings -->
+          <div class="action-fields" id="fields-comando" style="display: none;">
+            <div class="control-row">
+              <div class="control-label-row">
+                <span>Comando del Sistema</span>
+              </div>
+              <input type="text" id="comando-args" class="lock-pin-input" placeholder="Ej: pkill -f viernes" style="width: 100%; text-align: left; letter-spacing: normal; font-family: 'Consolas', monospace; font-size: 14px;">
+            </div>
+          </div>
+
+          <!-- abrir_aplicacion settings -->
+          <div class="action-fields" id="fields-app" style="display: none;">
+            <div class="control-row">
+              <div class="control-label-row">
+                <span>Aplicación a Abrir</span>
+              </div>
+              <select class="ios-select" id="app-select-dropdown">
+                <!-- Whitelist apps options -->
+              </select>
+              <input type="text" id="app-custom-input" class="lock-pin-input" placeholder="Nueva aplicación..." style="width: 100%; margin-top: 8px; display: none; text-align: left; letter-spacing: normal; font-family: inherit; font-size: 14px;">
+            </div>
+          </div>
+
+          <!-- lanzar_juego settings -->
+          <div class="action-fields" id="fields-game" style="display: none;">
+            <div class="control-row">
+              <div class="control-label-row">
+                <span>ID del Juego (Steam AppID)</span>
+              </div>
+              <input type="text" id="game-id" class="lock-pin-input" placeholder="Ej: 15935706966148513792" style="width: 100%; text-align: left; letter-spacing: normal; font-family: 'Consolas', monospace; font-size: 14px;">
+            </div>
+          </div>
+        </div>
+
+        <!-- FORM ACTIONS -->
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+          <button id="btn-cancel-form" class="lock-pin-btn" style="flex: 1; margin-bottom: 0;">Cancelar</button>
+          <button id="btn-save-form" class="lock-submit-btn" style="flex: 1;">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Access Locked Premium Overlay -->
+    <div class="lock-screen-overlay" id="lock-screen-overlay">
+      <div class="lock-icon-container">
+        <!-- Shield Lock SVG -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <h2 class="lock-title">Acceso Bloqueado / Access Locked</h2>
+      <p class="lock-subtitle">
+        La conexión remota está protegida. Escanea el código QR que se muestra en la aplicación de escritorio de <strong>Viernes</strong> en tu computadora para emparejar y desbloquear este dispositivo.
+      </p>
+      
+      <button id="show-pin-btn" class="lock-pin-btn">Ingresar PIN manualmente</button>
+      <div id="pin-input-container" class="lock-pin-container" style="display: none;">
+        <input type="text" id="pair-pin-input" placeholder="Ej: 582914" maxlength="16" class="lock-pin-input">
+        <button id="submit-pin-btn" class="lock-submit-btn">Desbloquear</button>
+      </div>
+
+      <div class="lock-divider"></div>
+      <div class="lock-footer">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Conexión Local Segura
+      </div>
     </div>
 
   </div>
@@ -1696,9 +2136,22 @@
       }
     }
 
+    // --- Access Locked Overlay Control ---
+    function showAccessLockedOverlay() {
+      const overlay = document.getElementById('lock-screen-overlay');
+      if (overlay) {
+        overlay.classList.add('active');
+      }
+    }
+
+    function hideAccessLockedOverlay() {
+      const overlay = document.getElementById('lock-screen-overlay');
+      if (overlay) {
+        overlay.classList.remove('active');
+      }
+    }
+
     // --- WebSocket Logic ---
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
     let ws = null;
     let reconnectTimeout = null;
 
@@ -1707,11 +2160,22 @@
         ws.close();
       }
 
+      const token = localStorage.getItem('viernes_jwt');
+      if (!token) {
+        console.warn("No se encontró el token JWT en localStorage. Bloqueando acceso.");
+        showAccessLockedOverlay();
+        return;
+      }
+
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`;
+
       console.log(`Conectando WebSocket a: ${wsUrl}`);
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         console.log("WebSocket conectado con éxito.");
+        hideAccessLockedOverlay();
         // Al conectar, enviar el estado del micrófono seleccionado actualmente en el drawer
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({
@@ -1790,10 +2254,17 @@
         }
       };
 
-      ws.onclose = () => {
-        console.log("WebSocket cerrado. Reintentando en 2 segundos...");
+      ws.onclose = (event) => {
+        console.log(`WebSocket cerrado. Código: ${event.code}`);
         transitionToState(STATES.IDLE);
         
+        if (event.code === 1008) {
+          console.warn("WebSocket cerrado por violación de políticas (código 1008). Limpiando token y bloqueando acceso.");
+          localStorage.removeItem('viernes_jwt');
+          showAccessLockedOverlay();
+          return;
+        }
+
         clearTimeout(reconnectTimeout);
         reconnectTimeout = setTimeout(connectWebSocket, 2000);
       };
@@ -1803,7 +2274,98 @@
       };
     }
 
-    connectWebSocket();
+    // --- Page Load Initialization & Pairing Flow ---
+    async function initApp() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const pairToken = urlParams.get('pair_token');
+
+      if (pairToken) {
+        console.log("Token de emparejamiento detectado. Intercambiando por JWT...");
+        try {
+          const response = await fetch(`/auth/pair?pair_token=${encodeURIComponent(pairToken)}`);
+          if (response.ok) {
+            const data = await response.json();
+            const token = data.token || data.jwt || data.access_token;
+            if (token) {
+              localStorage.setItem('viernes_jwt', token);
+              console.log("Token JWT guardado exitosamente en localStorage.");
+            } else {
+              console.error("No se encontró el token JWT en la respuesta:", data);
+            }
+          } else {
+            console.error("Error al intercambiar el token de emparejamiento:", response.status);
+          }
+        } catch (err) {
+          console.error("Error de red durante el emparejamiento:", err);
+        } finally {
+          // Limpiar parámetros de la URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+
+      // Wire PIN pairing inputs
+      const showPinBtn = document.getElementById('show-pin-btn');
+      const pinInputContainer = document.getElementById('pin-input-container');
+      const submitPinBtn = document.getElementById('submit-pin-btn');
+      const pairPinInput = document.getElementById('pair-pin-input');
+
+      if (showPinBtn && pinInputContainer && submitPinBtn && pairPinInput) {
+        showPinBtn.addEventListener('click', () => {
+          showPinBtn.style.display = 'none';
+          pinInputContainer.style.display = 'flex';
+          pairPinInput.focus();
+        });
+
+        const handlePinSubmit = async () => {
+          const pin = pairPinInput.value.trim();
+          if (!pin) return;
+          
+          submitPinBtn.disabled = true;
+          submitPinBtn.textContent = 'Verificando...';
+          
+          try {
+            const response = await fetch(`/auth/pair?pair_pin=${encodeURIComponent(pin)}`);
+            if (response.ok) {
+              const data = await response.json();
+              const token = data.token;
+              if (token) {
+                localStorage.setItem('viernes_jwt', token);
+                console.log("PIN verificado y JWT guardado.");
+                
+                // Ocultar formulario, restablecer vista y conectar
+                pairPinInput.value = '';
+                pinInputContainer.style.display = 'none';
+                showPinBtn.style.display = 'block';
+                
+                hideAccessLockedOverlay();
+                connectWebSocket();
+              } else {
+                alert("Error de autenticación. Token no devuelto.");
+              }
+            } else {
+              alert("PIN incorrecto. Inténtalo de nuevo.");
+            }
+          } catch (err) {
+            console.error("Error al autenticar PIN:", err);
+            alert("Error de red al verificar el PIN.");
+          } finally {
+            submitPinBtn.disabled = false;
+            submitPinBtn.textContent = 'Desbloquear';
+          }
+        };
+
+        submitPinBtn.addEventListener('click', handlePinSubmit);
+        pairPinInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            handlePinSubmit();
+          }
+        });
+      }
+
+      connectWebSocket();
+    }
+
+    initApp();
 
     function sendRemoteCommand(commandName) {
       if (ws && ws.readyState === WebSocket.OPEN) {
@@ -2384,6 +2946,593 @@
         window.speechSynthesis.speak(u);
       }
     });
+
+    // --- Automations Drawer Controller ---
+    const YDOTOOL_KEYS = [
+      { label: 'SUPER', name: 'SUPER' },
+      { label: 'SHIFT', name: 'SHIFT' },
+      { label: 'ALT', name: 'ALT' },
+      { label: 'CTRL', name: 'CTRL' },
+      { label: 'ESPACIO', name: 'ESPACIO' },
+      { label: 'ENTER', name: 'ENTER' },
+      { label: 'ESC', name: 'ESC' },
+      { label: 'F11', name: 'F11' },
+      { label: 'F12', name: 'F12' },
+      { label: 'TAB', name: 'TAB' },
+      { label: 'BORRAR', name: 'BORRAR' },
+      { label: 'ARRIBA', name: 'ARRIBA' },
+      { label: 'ABAJO', name: 'ABAJO' },
+      { label: 'IZQUIERDA', name: 'IZQUIERDA' },
+      { label: 'DERECHA', name: 'DERECHA' },
+      { label: 'VOL+', name: 'VOLUP' },
+      { label: 'VOL-', name: 'VOLDOWN' },
+      { label: 'PLAY', name: 'PLAYPAUSE' }
+    ];
+
+    const automationsTrigger = document.getElementById('automations-trigger');
+    const automationsDrawer = document.getElementById('automations-drawer');
+    const automationsCloseBtn = document.getElementById('automations-close-btn');
+    const automationsCloseHandle = document.getElementById('automations-close-handle');
+    const btnNewAutomation = document.getElementById('btn-new-automation');
+    const automationsListView = document.getElementById('automations-list-view');
+    const automationsFormView = document.getElementById('automations-form-view');
+    const btnCancelForm = document.getElementById('btn-cancel-form');
+    const btnSaveForm = document.getElementById('btn-save-form');
+    const formActionType = document.getElementById('form-action-type');
+    const formVariantsContainer = document.getElementById('form-variants-container');
+    const btnAddVariant = document.getElementById('btn-add-variant');
+    const formVariantInput = document.getElementById('form-variant-input');
+    const formAutoName = document.getElementById('form-auto-name');
+    const formOriginalName = document.getElementById('form-original-name');
+    const appSelectDropdown = document.getElementById('app-select-dropdown');
+    const appCustomInput = document.getElementById('app-custom-input');
+    const ydotoolArgs = document.getElementById('ydotool-args');
+    const comandoArgs = document.getElementById('comando-args');
+    const gameId = document.getElementById('game-id');
+    const automationsListContainer = document.getElementById('automations-list-container');
+
+    let remoteConfig = { keyboard_macros: {}, phonetics: {}, whitelist_apps: [], games: {} };
+    let localAutomations = [];
+    let activeFormVariants = [];
+
+    function openAutomationsDrawer() {
+      // Close settings drawer if open
+      settingsDrawer.classList.remove('active');
+      
+      drawerOverlay.classList.add('active');
+      automationsDrawer.classList.add('active');
+      toggleFormView(false);
+      loadConfig();
+    }
+
+    function closeAutomationsDrawer() {
+      drawerOverlay.classList.remove('active');
+      automationsDrawer.classList.remove('active');
+    }
+
+    // Expand closeDrawer to cover both
+    const originalCloseDrawer = closeDrawer;
+    closeDrawer = function() {
+      originalCloseDrawer();
+      automationsDrawer.classList.remove('active');
+    };
+
+    automationsTrigger.addEventListener('click', openAutomationsDrawer);
+    automationsCloseBtn.addEventListener('click', closeAutomationsDrawer);
+    automationsCloseHandle.addEventListener('click', closeAutomationsDrawer);
+
+    function toggleFormView(showForm) {
+      if (showForm) {
+        automationsListView.style.display = 'none';
+        automationsFormView.style.display = 'block';
+        document.getElementById('automations-drawer-title').textContent = formOriginalName.value ? 'Editar Automatización' : 'Nueva Automatización';
+      } else {
+        automationsListView.style.display = 'block';
+        automationsFormView.style.display = 'none';
+        document.getElementById('automations-drawer-title').textContent = 'Automatizaciones';
+      }
+    }
+
+    async function loadConfig() {
+      const token = localStorage.getItem('viernes_jwt');
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/config', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (!response.ok) {
+          console.error("Error loading config:", response.status);
+          return;
+        }
+        const data = await response.json();
+        remoteConfig = data;
+        
+        localAutomations = [];
+        
+        // 1. Keyboard macros
+        const macros = data.keyboard_macros || {};
+        for (const [name, value] of Object.entries(macros)) {
+          let type = 'ydotool';
+          let details = '';
+          
+          if (typeof value === 'string') {
+            if (value.startsWith('comando:') || value.startsWith('cmd:')) {
+              type = 'comando';
+              details = value.split(':', 1)[1] || '';
+            } else {
+              type = 'ydotool';
+              details = value;
+            }
+          } else if (Array.isArray(value)) {
+            if (value.length > 0) {
+              const firstStep = value[0];
+              type = firstStep.type;
+              if (type === 'ydotool') {
+                details = value.map(s => s.args.join(' ')).join(' | ');
+              } else {
+                details = firstStep.args.join(' ');
+              }
+            }
+          }
+          
+          localAutomations.push({
+            name: name,
+            type: type,
+            details: details,
+            variants: []
+          });
+        }
+
+        // 2. Games
+        const games = data.games || {};
+        for (const [name, gameObj] of Object.entries(games)) {
+          localAutomations.push({
+            name: name,
+            type: 'lanzar_juego',
+            details: gameObj.id || '',
+            variants: []
+          });
+        }
+
+        // 3. Whitelist Apps
+        const apps = data.whitelist_apps || [];
+        apps.forEach(app => {
+          if (!localAutomations.some(a => a.name === app)) {
+            localAutomations.push({
+              name: app,
+              type: 'abrir_aplicacion',
+              details: app,
+              variants: []
+            });
+          }
+        });
+
+        // 4. Phonetics mapping
+        const phonetics = data.phonetics || {};
+        for (const [misheard, corrected] of Object.entries(phonetics)) {
+          const auto = localAutomations.find(a => a.name === corrected);
+          if (auto) {
+            if (!auto.variants.includes(misheard)) {
+              auto.variants.push(misheard);
+            }
+          }
+        }
+
+        renderAutomationsList();
+        populateAppSelectDropdown();
+        
+      } catch (err) {
+        console.error("Error loading configuration:", err);
+      }
+    }
+
+    function renderAutomationsList() {
+      automationsListContainer.innerHTML = '';
+      if (localAutomations.length === 0) {
+        automationsListContainer.innerHTML = '<div style="text-align: center; color: var(--text-tertiary); padding: 20px; font-size: 13px;">No hay automatizaciones creadas aún.</div>';
+        return;
+      }
+
+      localAutomations.forEach(auto => {
+        const card = document.createElement('div');
+        card.className = 'auto-item';
+        
+        let typeBadge = '';
+        if (auto.type === 'ydotool') typeBadge = 'Teclado';
+        else if (auto.type === 'comando') typeBadge = 'Comando';
+        else if (auto.type === 'abrir_aplicacion') typeBadge = 'Abrir App';
+        else if (auto.type === 'lanzar_juego') typeBadge = 'Steam Game';
+
+        const variantsHTML = auto.variants.map(v => `<span class="auto-tag">${v}</span>`).join('');
+
+        card.innerHTML = `
+          <div class="auto-item-header">
+            <span class="auto-item-title">${auto.name}</span>
+            <span class="auto-item-type">${typeBadge}</span>
+          </div>
+          <div class="auto-item-detail">${auto.details}</div>
+          ${auto.variants.length > 0 ? `<div class="auto-tags-container">${variantsHTML}</div>` : ''}
+          <div class="auto-item-actions">
+            <button class="auto-action-btn edit" onclick="window.editAutomation('${auto.name.replace(/'/g, "\\'")}')">Editar</button>
+            <button class="auto-action-btn delete" onclick="window.deleteAutomation('${auto.name.replace(/'/g, "\\'")}')">Eliminar</button>
+          </div>
+        `;
+        automationsListContainer.appendChild(card);
+      });
+    }
+
+    function populateAppSelectDropdown() {
+      appSelectDropdown.innerHTML = '';
+      
+      const apps = new Set();
+      localAutomations.forEach(a => {
+        if (a.type === 'abrir_aplicacion') {
+          apps.add(a.name);
+        }
+      });
+      ['brave', 'code', 'nautilus', 'alacritty', 'discord', 'steam'].forEach(a => apps.add(a));
+      
+      apps.forEach(app => {
+        const opt = document.createElement('option');
+        opt.value = app;
+        opt.textContent = app;
+        appSelectDropdown.appendChild(opt);
+      });
+      
+      const optCustom = document.createElement('option');
+      optCustom.value = '__custom__';
+      optCustom.textContent = '-- Nueva aplicación... --';
+      appSelectDropdown.appendChild(optCustom);
+    }
+
+    appSelectDropdown.addEventListener('change', (e) => {
+      if (e.target.value === '__custom__') {
+        appCustomInput.style.display = 'block';
+        appCustomInput.value = '';
+        appCustomInput.focus();
+      } else {
+        appCustomInput.style.display = 'none';
+      }
+    });
+
+    formActionType.addEventListener('change', updateFormFieldsVisibility);
+
+    function updateFormFieldsVisibility() {
+      const type = formActionType.value;
+      document.querySelectorAll('.action-fields').forEach(el => el.style.display = 'none');
+      
+      if (type === 'ydotool') {
+        document.getElementById('fields-ydotool').style.display = 'block';
+        populateYdotoolHelpers();
+      } else if (type === 'comando') {
+        document.getElementById('fields-comando').style.display = 'block';
+      } else if (type === 'abrir_aplicacion') {
+        document.getElementById('fields-app').style.display = 'block';
+        if (appSelectDropdown.value === '__custom__') {
+          appCustomInput.style.display = 'block';
+        } else {
+          appCustomInput.style.display = 'none';
+        }
+      } else if (type === 'lanzar_juego') {
+        document.getElementById('fields-game').style.display = 'block';
+      }
+    }
+
+    function populateYdotoolHelpers() {
+      const container = document.getElementById('ydotool-helpers');
+      if (!container) return;
+      container.innerHTML = '';
+      
+      // Render standard key modifiers and letters
+      YDOTOOL_KEYS.forEach(key => {
+        const btn = document.createElement('span');
+        btn.className = 'auto-tag';
+        btn.style.cursor = 'pointer';
+        btn.style.background = 'rgba(255, 255, 255, 0.08)';
+        btn.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+        btn.textContent = `+ ${key.label}`;
+        btn.addEventListener('click', () => {
+          let val = ydotoolArgs.value.trim();
+          if (!val) {
+            val = key.name;
+          } else if (val.endsWith('+') || val.endsWith(',')) {
+            val += ` ${key.name}`;
+          } else {
+            val += ` + ${key.name}`;
+          }
+          ydotoolArgs.value = val;
+        });
+        container.appendChild(btn);
+      });
+
+      // Render sleep/delay helper shortcuts
+      const delays = [
+        { label: 'Pausa 0.5s', val: ', -0.5' },
+        { label: 'Pausa 1s', val: ', -1' },
+        { label: 'Pausa 2s', val: ', -2' }
+      ];
+
+      delays.forEach(d => {
+        const btn = document.createElement('span');
+        btn.className = 'auto-tag';
+        btn.style.cursor = 'pointer';
+        btn.style.background = 'rgba(255, 159, 10, 0.1)';
+        btn.style.border = '1px solid rgba(255, 159, 10, 0.2)';
+        btn.style.color = 'var(--accent-orange)';
+        btn.textContent = `+ ${d.label}`;
+        btn.addEventListener('click', () => {
+          let val = ydotoolArgs.value.trim();
+          if (val) {
+            // Append delay
+            if (val.endsWith(',')) {
+              val += ` ${d.val.substring(2)}`;
+            } else {
+              val += d.val;
+            }
+            ydotoolArgs.value = val;
+          }
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    btnNewAutomation.addEventListener('click', () => {
+      formOriginalName.value = '';
+      formAutoName.value = '';
+      formAutoName.disabled = false;
+      formVariantInput.value = '';
+      activeFormVariants = [];
+      formActionType.value = 'ydotool';
+      ydotoolArgs.value = '';
+      comandoArgs.value = '';
+      gameId.value = '';
+      appSelectDropdown.selectedIndex = 0;
+      appCustomInput.style.display = 'none';
+      
+      renderFormVariants();
+      updateFormFieldsVisibility();
+      toggleFormView(true);
+    });
+
+    btnCancelForm.addEventListener('click', () => {
+      toggleFormView(false);
+    });
+
+    function renderFormVariants() {
+      formVariantsContainer.innerHTML = '';
+      activeFormVariants.forEach((variant, index) => {
+        const pill = document.createElement('span');
+        pill.className = 'auto-tag';
+        pill.innerHTML = `
+          ${variant}
+          <span class="auto-tag-delete" onclick="window.removeFormVariant(${index})">&times;</span>
+        `;
+        formVariantsContainer.appendChild(pill);
+      });
+    }
+
+    window.removeFormVariant = (index) => {
+      activeFormVariants.splice(index, 1);
+      renderFormVariants();
+    };
+
+    function handleAddVariant() {
+      const val = formVariantInput.value.trim().toLowerCase();
+      if (val && !activeFormVariants.includes(val)) {
+        activeFormVariants.push(val);
+        renderFormVariants();
+        formVariantInput.value = '';
+      }
+    }
+
+    btnAddVariant.addEventListener('click', handleAddVariant);
+    formVariantInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAddVariant();
+      }
+    });
+
+    window.editAutomation = (name) => {
+      const auto = localAutomations.find(a => a.name === name);
+      if (!auto) return;
+
+      formOriginalName.value = auto.name;
+      formAutoName.value = auto.name;
+      formAutoName.disabled = false;
+      formVariantInput.value = '';
+      activeFormVariants = [...auto.variants];
+      formActionType.value = auto.type;
+      
+      ydotoolArgs.value = '';
+      comandoArgs.value = '';
+      gameId.value = '';
+      appCustomInput.value = '';
+      appCustomInput.style.display = 'none';
+
+      if (auto.type === 'ydotool') {
+        ydotoolArgs.value = auto.details;
+      } else if (auto.type === 'comando') {
+        comandoArgs.value = auto.details;
+      } else if (auto.type === 'abrir_aplicacion') {
+        let optionExists = false;
+        for (let i = 0; i < appSelectDropdown.options.length; i++) {
+          if (appSelectDropdown.options[i].value === auto.details) {
+            appSelectDropdown.selectedIndex = i;
+            optionExists = true;
+            break;
+          }
+        }
+        if (!optionExists) {
+          appSelectDropdown.value = '__custom__';
+          appCustomInput.style.display = 'block';
+          appCustomInput.value = auto.details;
+        }
+      } else if (auto.type === 'lanzar_juego') {
+        gameId.value = auto.details;
+      }
+
+      renderFormVariants();
+      updateFormFieldsVisibility();
+      toggleFormView(true);
+    };
+
+    window.deleteAutomation = async (name) => {
+      if (confirm(`¿Estás seguro de que quieres eliminar la automatización "${name}"?`)) {
+        localAutomations = localAutomations.filter(a => a.name !== name);
+        await saveConfig();
+      }
+    };
+
+    btnSaveForm.addEventListener('click', async () => {
+      const name = formAutoName.value.trim().toLowerCase();
+      const originalName = formOriginalName.value;
+      const type = formActionType.value;
+      
+      if (!name) {
+        alert("Por favor, ingresa el nombre / comando primario.");
+        return;
+      }
+      
+      let details = '';
+      if (type === 'ydotool') {
+        details = ydotoolArgs.value.trim();
+        if (!details) {
+          alert("Por favor, ingresa los argumentos de ydotool.");
+          return;
+        }
+      } else if (type === 'comando') {
+        details = comandoArgs.value.trim();
+        if (!details) {
+          alert("Por favor, ingresa el comando de consola.");
+          return;
+        }
+      } else if (type === 'abrir_aplicacion') {
+        if (appSelectDropdown.value === '__custom__') {
+          details = appCustomInput.value.trim().toLowerCase();
+        } else {
+          details = appSelectDropdown.value;
+        }
+        if (!details) {
+          alert("Por favor, ingresa la aplicación a abrir.");
+          return;
+        }
+      } else if (type === 'lanzar_juego') {
+        details = gameId.value.trim();
+        if (!details) {
+          alert("Por favor, ingresa el ID del juego (Steam AppID).");
+          return;
+        }
+      }
+      
+      const autoObj = {
+        name: name,
+        type: type,
+        details: details,
+        variants: activeFormVariants
+      };
+      
+      if (originalName) {
+        if (originalName !== name) {
+          if (localAutomations.some(a => a.name === name)) {
+            alert(`Ya existe una automatización con el nombre "${name}".`);
+            return;
+          }
+          localAutomations = localAutomations.filter(a => a.name !== originalName);
+        }
+        const idx = localAutomations.findIndex(a => a.name === name);
+        if (idx !== -1) {
+          localAutomations[idx] = autoObj;
+        } else {
+          localAutomations.push(autoObj);
+        }
+      } else {
+        if (localAutomations.some(a => a.name === name)) {
+          alert(`Ya existe una automatización con el nombre "${name}".`);
+          return;
+        }
+        localAutomations.push(autoObj);
+      }
+      
+      await saveConfig();
+      toggleFormView(false);
+    });
+
+    async function saveConfig() {
+      const token = localStorage.getItem('viernes_jwt');
+      if (!token) return;
+
+      const newMacros = {};
+      const newGames = {};
+      const newWhitelistApps = [];
+      const newPhonetics = {};
+
+      if (remoteConfig && remoteConfig.phonetics) {
+        for (const [misheard, corrected] of Object.entries(remoteConfig.phonetics)) {
+          const autoExists = localAutomations.some(a => a.name === corrected);
+          if (!autoExists) {
+            newPhonetics[misheard] = corrected;
+          }
+        }
+      }
+
+      localAutomations.forEach(auto => {
+        const name = auto.name.toLowerCase().trim();
+        if (!name) return;
+
+        auto.variants.forEach(variant => {
+          const v = variant.toLowerCase().trim();
+          if (v) {
+            newPhonetics[v] = name;
+          }
+        });
+
+        if (auto.type === 'ydotool') {
+          newMacros[name] = auto.details;
+        } else if (auto.type === 'comando') {
+          newMacros[name] = "comando:" + auto.details;
+        } else if (auto.type === 'abrir_aplicacion') {
+          newWhitelistApps.push(name);
+        } else if (auto.type === 'lanzar_juego') {
+          newGames[name] = {
+            platform: 'steam',
+            id: auto.details.trim()
+          };
+        }
+      });
+
+      const payload = {
+        keyboard_macros: newMacros,
+        games: newGames,
+        whitelist_apps: newWhitelistApps,
+        phonetics: newPhonetics
+      };
+
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          console.log("Configuration saved successfully.");
+          await loadConfig();
+        } else {
+          console.error("Failed to save config:", response.status);
+          alert("Error al guardar la configuración en el servidor.");
+        }
+      } catch (err) {
+        console.error("Error saving config:", err);
+        alert("Error de red al guardar la configuración.");
+      }
+    }
   </script>
 
   <!-- Register Service Worker -->

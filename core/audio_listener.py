@@ -303,6 +303,13 @@ class AudioListener:
                         logger.info("¡Detección exitosa (resultado parcial)! Escuchando comando...")
                         break
 
+            # Detener reproducción actual de TTS si estaba hablando
+            try:
+                from . import tts
+                tts.stop()
+            except Exception as e:
+                logger.error(f"Error al detener TTS en wake word: {e}")
+
             # Bajar volumen para capturar la voz del usuario claramente
             try:
                 self.original_volume = get_pc_volume()

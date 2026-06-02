@@ -9,17 +9,13 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 import numpy as np
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, status, Depends, Header
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
-
-# Configuración de logging
-logger = logging.getLogger("ViernesWebServer")
-
-from .utils import get_pc_volume, set_pc_volume
-
-app = FastAPI(title="Viernes Web Remote Control")
+import jwt
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 # Guardar certificados en .kiro/
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -27,6 +23,43 @@ PROJECT_ROOT = os.path.dirname(BASE_DIR)
 KIRO_DIR = os.path.join(BASE_DIR, ".kiro")
 CERT_PATH = os.path.join(KIRO_DIR, "cert.pem")
 KEY_PATH = os.path.join(KIRO_DIR, "key.pem")
+JWT_KEY_PATH = os.path.join(KIRO_DIR, "jwt_private.pem")
+
+def get_or_generate_jwt_keys():
+    os.makedirs(KIRO_DIR, exist_ok=True)
+    if os.path.exists(JWT_KEY_PATH):
+        try:
+            with open(JWT_KEY_PATH, "rb") as f:
+                private_key = serialization.load_pem_private_key(f.read(), password=None)
+                logger.info("Clave privada JWT cargada desde disco (.kiro/jwt_private.pem)")
+                return private_key, private_key.public_key()
+        except Exception as e:
+            logger.error(f"Error al cargar clave JWT: {e}. Regenerando...")
+            
+    # Generar nueva clave
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    try:
+        pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        with open(JWT_KEY_PATH, "wb") as f:
+            f.write(pem)
+        logger.info("Nueva clave privada JWT generada y guardada en disco (.kiro/jwt_private.pem)")
+    except Exception as e:
+        logger.error(f"Error al guardar clave JWT: {e}")
+        
+    return private_key, private_key.public_key()
+
+# Configuración de logging
+logger = logging.getLogger("ViernesWebServer")
+
+JWT_PRIVATE_KEY, JWT_PUBLIC_KEY = get_or_generate_jwt_keys()
+
+from .utils import get_pc_volume, set_pc_volume
+
+app = FastAPI(title="Viernes Web Remote Control")
 
 def get_asset_dir(name: str) -> Optional[str]:
     """Devuelve el directorio de assets si existe (core/ o raíz del proyecto)."""
@@ -229,9 +262,105 @@ async def download_cert():
         return FileResponse(CERT_PATH, media_type="application/x-x509-ca-cert", filename="viernes-cert.pem")
     return {"error": "Certificate not found"}
 
+@app.get("/auth/pair")
+async def auth_pair(pair_token: Optional[str] = Query(None), pair_pin: Optional[str] = Query(None)):
+    global assistant_instance
+    token_to_check = pair_token or pair_pin
+    if not token_to_check:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing pairing token or PIN"
+        )
+        
+    is_valid = False
+    if assistant_instance:
+        if token_to_check == assistant_instance.pair_token:
+            is_valid = True
+        elif token_to_check == assistant_instance.pair_pin:
+            is_valid = True
+
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid pairing token or PIN"
+        )
+    payload = {
+        "exp": datetime.utcnow() + timedelta(days=365),
+        "sub": "viernes-remote-client"
+    }
+    token = jwt.encode(payload, JWT_PRIVATE_KEY, algorithm="RS256")
+    return {"token": token}
+
+async def verify_jwt_token(authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid authorization header"
+        )
+    token = authorization.split(" ")[1]
+    try:
+        payload = jwt.decode(token, JWT_PUBLIC_KEY, algorithms=["RS256"])
+        return payload
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid token: {e}"
+        )
+
+@app.get("/api/config")
+async def get_config(token_payload: dict = Depends(verify_jwt_token)):
+    global assistant_instance
+    if not assistant_instance:
+        raise HTTPException(status_code=503, detail="Assistant not initialized")
+    return {
+        "keyboard_macros": assistant_instance.config.get("keyboard_macros", {}),
+        "phonetics": assistant_instance.config.get("phonetics", {}),
+        "whitelist_apps": assistant_instance.config.get("whitelist_apps", []),
+        "games": assistant_instance.config.get("games", {})
+    }
+
+@app.post("/api/config")
+async def post_config(new_data: dict, token_payload: dict = Depends(verify_jwt_token)):
+    global assistant_instance
+    if not assistant_instance:
+        raise HTTPException(status_code=503, detail="Assistant not initialized")
+        
+    config_path = assistant_instance.config_path
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            current_config = json.load(f)
+            
+        if "keyboard_macros" in new_data:
+            current_config["keyboard_macros"] = new_data["keyboard_macros"]
+        if "phonetics" in new_data:
+            current_config["phonetics"] = new_data["phonetics"]
+        if "whitelist_apps" in new_data:
+            current_config["whitelist_apps"] = new_data["whitelist_apps"]
+        if "games" in new_data:
+            current_config["games"] = new_data["games"]
+            
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(current_config, f, indent=2, ensure_ascii=False)
+            
+        assistant_instance.reload_config()
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Error saving config via API: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = Query(None)):
     global active_mic_source
+    
+    try:
+        if not token:
+            raise Exception("Missing token")
+        jwt.decode(token, JWT_PUBLIC_KEY, algorithms=["RS256"])
+    except Exception as e:
+        logger.warning(f"WebSocket connection rejected: {e}")
+        await websocket.close(code=1008)
+        return
+
     await manager.connect(websocket)
     audio_buffer = bytearray()
     recording_active = False

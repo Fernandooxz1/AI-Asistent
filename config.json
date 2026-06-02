@@ -48,6 +48,9 @@
     "pausa el video": [
       {"type": "ydotool", "args": ["key", "57:1", "57:0"]}
     ],
+    "pausa": [
+      {"type": "ydotool", "args": ["key", "57:1", "57:0"]}
+    ],
     "pausa la musica": [
       {"type": "ydotool", "args": ["key", "-d", "150", "125:1", "42:1", "56:1", "50:1", "50:0", "56:0", "42:0", "125:0"]}
     ],
@@ -128,7 +131,6 @@
     "cerrar la ventana": "cierra la ventana",
     "cerrar ventana": "cierra la ventana",
     "sierra la ventana": "cierra la ventana",
-    "sierra ventana": "cierra la ventana",
-    "pausa": "pausa el video"
+    "sierra ventana": "cierra la ventana"
   }
 }
