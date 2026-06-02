@@ -77,10 +77,9 @@ class TestWindowControlActionModule(unittest.TestCase):
             check=True
         )
         mock_run.assert_any_call(
-            ["hyprctl", "dispatch", "closewindow", "address:0x565032688c50"],
+            ["hyprctl", "dispatch", 'hl.dsp.window.close("address:0x565032688c50")'],
             capture_output=True,
-            text=True,
-            check=True
+            text=True
         )
 
     @patch("subprocess.run")
@@ -117,6 +116,45 @@ class TestWindowControlActionModule(unittest.TestCase):
         result = module.execute({"ventana_query": "brave"})
         
         self.assertFalse(result)
+
+    @patch("subprocess.run")
+    def test_execute_fallback(self, mock_run):
+        # Mock clients JSON response
+        clients_json = json.dumps([
+            {
+                "address": "0x565032688c50",
+                "class": "brave",
+                "title": "Brave Browser"
+            }
+        ])
+
+        # Lua command fails (returns non-zero or error in stdout), fallback succeeds
+        mock_res_clients = MagicMock(returncode=0, stdout=clients_json)
+        mock_res_lua_fail = MagicMock(returncode=1, stdout="error: nil value")
+        mock_res_fallback_ok = MagicMock(returncode=0)
+
+        mock_run.side_effect = [
+            mock_res_clients,
+            mock_res_lua_fail,
+            mock_res_fallback_ok
+        ]
+
+        module = WindowControlActionModule()
+        result = module.execute({"ventana_query": "brave"})
+
+        self.assertTrue(result)
+        # Verify both commands were tried
+        mock_run.assert_any_call(
+            ["hyprctl", "dispatch", 'hl.dsp.window.close("address:0x565032688c50")'],
+            capture_output=True,
+            text=True
+        )
+        mock_run.assert_any_call(
+            ["hyprctl", "dispatch", "closewindow", "address:0x565032688c50"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
 
 
 if __name__ == "__main__":

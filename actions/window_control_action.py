@@ -126,17 +126,36 @@ class WindowControlActionModule(ActionModule):
                 f"(dirección: {address}, coincidencia: {best_score:.1f}%)"
             )
 
+            # Intentar primero con el comando Lua de Omarchy/Hyprland-Lua
             try:
+                lua_cmd = f'hl.dsp.window.close("address:{address}")'
+                logger.info(f"Intentando cerrar ventana vía Hyprland-Lua: {lua_cmd}")
+                res = subprocess.run(
+                    ["hyprctl", "dispatch", lua_cmd],
+                    capture_output=True,
+                    text=True
+                )
+                if res.returncode == 0 and "error" not in res.stdout.lower():
+                    logger.info(f"Ventana '{title}' cerrada exitosamente vía Hyprland-Lua.")
+                    return True
+                else:
+                    logger.warning(f"Comando Lua retornó error o salida no esperada: {res.stdout.strip()}")
+            except Exception as e:
+                logger.warning(f"Error al intentar cerrar vía Lua: {e}")
+
+            # Fallback al comando estándar de Hyprland
+            try:
+                logger.info(f"Intentando cerrar ventana vía comando estándar closewindow.")
                 subprocess.run(
                     ["hyprctl", "dispatch", "closewindow", f"address:{address}"],
                     capture_output=True,
                     text=True,
                     check=True
                 )
-                logger.info(f"Ventana '{title}' cerrada de forma silenciosa.")
+                logger.info(f"Ventana '{title}' cerrada de forma silenciosa con comando estándar.")
                 return True
             except subprocess.SubprocessError as e:
-                logger.error(f"Error al ejecutar comando de cierre de Hyprland: {e}")
+                logger.error(f"Error al ejecutar comando de cierre estándar de Hyprland: {e}")
                 return False
         else:
             logger.warning(

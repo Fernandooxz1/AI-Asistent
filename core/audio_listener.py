@@ -312,7 +312,8 @@ class AudioListener:
 
             # Bajar volumen para capturar la voz del usuario claramente
             try:
-                self.original_volume = get_pc_volume()
+                if self.original_volume is None:
+                    self.original_volume = get_pc_volume()
                 set_pc_volume(10)
             except Exception as e:
                 logger.error(f"Error al bajar volumen del sistema en wake word: {e}")

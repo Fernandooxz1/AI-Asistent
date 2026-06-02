@@ -707,12 +707,18 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = Query(
                 elif event_type == "volume":
                     vol_val = data.get("value", 50)
                     if assistant_instance:
-                        # Ajustar volumen absoluto en Linux
-                        threading.Thread(
-                            target=set_pc_volume,
-                            args=(vol_val,),
-                            daemon=True
-                        ).start()
+                        # Si el asistente está escuchando y tiene el volumen atenuado,
+                        # guardamos el volumen de restauración en su lugar para no anular la atenuación.
+                        if hasattr(assistant_instance, "listener") and getattr(assistant_instance.listener, "original_volume", None) is not None:
+                            logger.info(f"[WS] Asistente atenuado. Guardando {vol_val}% como volumen de restauración.")
+                            assistant_instance.listener.original_volume = vol_val
+                        else:
+                            # Ajustar volumen absoluto en Linux
+                            threading.Thread(
+                                target=set_pc_volume,
+                                args=(vol_val,),
+                                daemon=True
+                            ).start()
 
                 elif event_type == "media_control":
                     action = data.get("action")

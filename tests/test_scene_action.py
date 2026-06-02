@@ -103,18 +103,24 @@ class TestSceneActionModule(unittest.TestCase):
             mock_proc2.terminate.assert_called_once()
             mock_proc3.terminate.assert_not_called()
 
-            # Assert workspaces were switched sequentially:
-            # NotebookLM in workspace 1, Gemini in workspace 2
-            mock_run.assert_has_calls([
-                call(["hyprctl", "dispatch", "workspace", "1"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),
-                call(["hyprctl", "dispatch", "workspace", "2"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            ], any_order=False)
+            # Assert applications were launched in correct workspaces via Hyprland-Lua
+            mock_run.assert_any_call(
+                ["hyprctl", "dispatch", 'hl.dsp.exec_cmd("[workspace 1 silent] omarchy-launch-webapp https://notebooklm.google.com/")'],
+                capture_output=True,
+                text=True
+            )
+            mock_run.assert_any_call(
+                ["hyprctl", "dispatch", 'hl.dsp.exec_cmd("[workspace 2 silent] omarchy-launch-webapp https://gemini.google.com/app?hl=es")'],
+                capture_output=True,
+                text=True
+            )
 
-            # Assert applications were launched
-            mock_popen.assert_has_calls([
-                call(shlex.split("omarchy-launch-webapp https://notebooklm.google.com/"), start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),
-                call(shlex.split("omarchy-launch-webapp https://gemini.google.com/app?hl=es"), start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            ])
+            # Assert final primary workspace focus
+            mock_run.assert_any_call(
+                ["hyprctl", "dispatch", 'hl.dsp.focus({ workspace = "1" })'],
+                capture_output=True,
+                text=True
+            )
 
             # Assert macros were executed
             mock_kb_instance.execute.assert_called_once_with({"macro": "pone musica"})
@@ -139,22 +145,29 @@ class TestSceneActionModule(unittest.TestCase):
 
         self.assertTrue(result)
 
-        # Assert workspaces switches:
-        # agy -> workspace 1
-        # gemini -> workspace 2
-        # youtube -> workspace 9
-        mock_run.assert_has_calls([
-            call(["hyprctl", "dispatch", "workspace", "1"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),
-            call(["hyprctl", "dispatch", "workspace", "2"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),
-            call(["hyprctl", "dispatch", "workspace", "9"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        ], any_order=False)
+        # Assert apps opened via Hyprland-Lua exec_cmd in target workspaces
+        mock_run.assert_any_call(
+            ["hyprctl", "dispatch", 'hl.dsp.exec_cmd("[workspace 1 silent] alacritty -e agy")'],
+            capture_output=True,
+            text=True
+        )
+        mock_run.assert_any_call(
+            ["hyprctl", "dispatch", 'hl.dsp.exec_cmd("[workspace 2 silent] omarchy-launch-webapp https://gemini.google.com/app?hl=es")'],
+            capture_output=True,
+            text=True
+        )
+        mock_run.assert_any_call(
+            ["hyprctl", "dispatch", 'hl.dsp.exec_cmd("[workspace 9 silent] brave https://youtube.com")'],
+            capture_output=True,
+            text=True
+        )
 
-        # Assert apps opened
-        mock_popen.assert_has_calls([
-            call(shlex.split("alacritty -e agy"), start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),
-            call(shlex.split("omarchy-launch-webapp https://gemini.google.com/app?hl=es"), start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),
-            call(shlex.split("brave https://youtube.com"), start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        ])
+        # Assert final primary workspace focus
+        mock_run.assert_any_call(
+            ["hyprctl", "dispatch", 'hl.dsp.focus({ workspace = "1" })'],
+            capture_output=True,
+            text=True
+        )
 
         # Assert YouTube playback was called for "mix de Ariel coronel"
         mock_yt_instance.execute.assert_called_once_with({"busqueda": "mix de Ariel coronel"})

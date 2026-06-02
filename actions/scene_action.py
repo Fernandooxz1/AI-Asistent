@@ -119,16 +119,32 @@ class SceneActionModule(ActionModule):
 
         # ── 4. ABRIR APLICACIONES (open_apps) Y ENRUTAR WORKSPACES ──
         open_apps = scene_config.get("open_apps", [])
+        target_workspaces = []
         if open_apps:
             logger.info("Abriendo aplicaciones configuradas...")
             for app in open_apps:
                 try:
-                    # Determinar si requiere workspace en Hyprland
                     workspace = self._get_workspace_for_app(app)
                     if workspace is not None:
-                        logger.info(f"Cambiando a workspace {workspace} para abrir '{app}'")
-                        subprocess.run(["hyprctl", "dispatch", "workspace", str(workspace)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        time.sleep(0.2)  # Delay para asegurar la transición
+                        target_workspaces.append(workspace)
+                        # Intentar lanzar nativamente en el workspace con reglas vía Hyprland-Lua
+                        lua_cmd = f'hl.dsp.exec_cmd("[workspace {workspace} silent] {app}")'
+                        logger.info(f"Intentando abrir '{app}' en workspace {workspace} vía Lua: {lua_cmd}")
+                        res = subprocess.run(["hyprctl", "dispatch", lua_cmd], capture_output=True, text=True)
+                        if res.returncode == 0 and "error" not in res.stdout.lower():
+                            logger.info(f"Aplicación '{app}' lanzada exitosamente en workspace {workspace} vía Lua.")
+                            time.sleep(0.1)
+                            continue
+                        else:
+                            logger.warning(f"Fallo al abrir vía Lua ({res.stdout.strip()}). Usando fallback...")
+                            
+                            # Fallback 1: Intentar cambiar de workspace con Lua antes de lanzar
+                            ws_cmd = f'hl.dsp.focus({{ workspace = "{workspace}" }})'
+                            res_ws = subprocess.run(["hyprctl", "dispatch", ws_cmd], capture_output=True, text=True)
+                            if res_ws.returncode != 0 or "error" in res_ws.stdout.lower():
+                                # Fallback 2: Cambiar de workspace estándar
+                                subprocess.run(["hyprctl", "dispatch", "workspace", str(workspace)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            time.sleep(0.2)
 
                     logger.info(f"Lanzando aplicación en segundo plano: {app}")
                     args = shlex.split(app)
@@ -196,6 +212,17 @@ class SceneActionModule(ActionModule):
                         logger.warning("Pomodoro habilitado pero no se encontró la clase de acción de Pomodoro o la referencia del asistente.")
             except Exception as e:
                 logger.error(f"Error al iniciar el Pomodoro: {e}")
+
+        # ── 8. ENFOCAR WORKSPACE PRINCIPAL AL FINALIZAR ──
+        if target_workspaces:
+            primary_ws = target_workspaces[0]
+            logger.info(f"Enfocando workspace principal al finalizar: {primary_ws}")
+            # Intentar enfocar con Lua primero
+            ws_cmd = f'hl.dsp.focus({{ workspace = "{primary_ws}" }})'
+            res = subprocess.run(["hyprctl", "dispatch", ws_cmd], capture_output=True, text=True)
+            if res.returncode != 0 or "error" in res.stdout.lower():
+                # Fallback estándar
+                subprocess.run(["hyprctl", "dispatch", "workspace", str(primary_ws)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         logger.info(f"Escenario '{escenario_name}' activado con éxito.")
         return True
