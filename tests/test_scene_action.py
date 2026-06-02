@@ -91,6 +91,10 @@ class TestSceneActionModule(unittest.TestCase):
         mock_kb_instance = MagicMock()
         mock_kb_class.return_value = mock_kb_instance
 
+        # Mock subprocess.run to return success for hyprctl eval calls
+        mock_run_result = MagicMock(returncode=0, stdout="ok")
+        mock_run.return_value = mock_run_result
+
         with patch("importlib.import_module") as mock_import:
             # Setup mock Pomodoro Action Module
             mock_pomo_module = MagicMock()
@@ -111,23 +115,32 @@ class TestSceneActionModule(unittest.TestCase):
             mock_proc2.terminate.assert_called_once()
             mock_proc3.terminate.assert_not_called()
 
-            # Assert dynamic window rules were registered
+            # Assert dynamic Lua window rules were registered for NotebookLM
             mock_run.assert_any_call(["hyprctl", "eval", 'hl.window_rule({ match = { class = "notebooklm" }, workspace = "1" })'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            mock_run.assert_any_call(["hyprctl", "eval", 'hl.window_rule({ match = { title = "NotebookLM" }, workspace = "1" })'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            mock_run.assert_any_call(["hyprctl", "eval", 'hl.window_rule({ match = { class = ".*notebooklm.*" }, workspace = "1" })'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            # Assert dynamic Lua window rules were registered for Gemini
             mock_run.assert_any_call(["hyprctl", "eval", 'hl.window_rule({ match = { class = "gemini" }, workspace = "2" })'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            mock_run.assert_any_call(["hyprctl", "eval", 'hl.window_rule({ match = { title = "Gemini" }, workspace = "2" })'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            mock_run.assert_any_call(["hyprctl", "eval", 'hl.window_rule({ match = { class = ".*gemini.*" }, workspace = "2" })'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-            # Assert applications were launched
-            mock_popen.assert_has_calls([
-                call(shlex.split("omarchy-launch-webapp https://notebooklm.google.com/"), start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),
-                call(shlex.split("omarchy-launch-webapp https://gemini.google.com/app?hl=es"), start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            ])
+            # Assert native windowrulev2 were registered
+            mock_run.assert_any_call(["hyprctl", "keyword", "windowrulev2", 'workspace 1 silent, class:^brave-notebooklm\\.google\\.com__app-default$'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            mock_run.assert_any_call(["hyprctl", "keyword", "windowrulev2", 'workspace 2 silent, class:^brave-gemini\\.google\\.com__app-default$'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-            # Assert final primary workspace focus
+            # Assert apps launched via Hyprland Lua exec_cmd
             mock_run.assert_any_call(
-                ["hyprctl", "dispatch", 'hl.dsp.focus({ workspace = "1" })'],
-                capture_output=True,
-                text=True
+                ["hyprctl", "eval", 'hl.dsp.exec_cmd("[workspace 1 silent] omarchy-launch-webapp https://notebooklm.google.com/")'],
+                capture_output=True, text=True
+            )
+            mock_run.assert_any_call(
+                ["hyprctl", "eval", 'hl.dsp.exec_cmd("[workspace 2 silent] omarchy-launch-webapp https://gemini.google.com/app?hl=es")'],
+                capture_output=True, text=True
+            )
+
+            # Assert final primary workspace focus via eval
+            mock_run.assert_any_call(
+                ["hyprctl", "eval", 'hl.dsp.exec_cmd("workspace 1")'],
+                capture_output=True, text=True
             )
 
             # Assert macros were executed
@@ -148,31 +161,42 @@ class TestSceneActionModule(unittest.TestCase):
         mock_yt_instance = MagicMock()
         mock_yt_class.return_value = mock_yt_instance
 
+        # Mock subprocess.run to return success for hyprctl eval calls
+        mock_run_result = MagicMock(returncode=0, stdout="ok")
+        mock_run.return_value = mock_run_result
+
         entities = {"escenario": "trabajo"}
         result = self.module.execute(entities)
 
         self.assertTrue(result)
 
-        # Assert dynamic window rules were registered
+        # Assert Lua window rules registered for agy
         mock_run.assert_any_call(["hyprctl", "eval", 'hl.window_rule({ match = { class = "AlacrittyAgy" }, workspace = "1" })'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        mock_run.assert_any_call(["hyprctl", "eval", 'hl.window_rule({ match = { title = "agy" }, workspace = "1" })'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        # Assert Lua window rules registered for Gemini
         mock_run.assert_any_call(["hyprctl", "eval", 'hl.window_rule({ match = { class = "gemini" }, workspace = "2" })'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        mock_run.assert_any_call(["hyprctl", "eval", 'hl.window_rule({ match = { title = "Gemini" }, workspace = "2" })'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        # Assert Lua window rules registered for YouTube
         mock_run.assert_any_call(["hyprctl", "eval", 'hl.window_rule({ match = { class = "youtube" }, workspace = "9" })'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        mock_run.assert_any_call(["hyprctl", "eval", 'hl.window_rule({ match = { title = "YouTube" }, workspace = "9" })'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-        # Assert apps opened
-        mock_popen.assert_has_calls([
-            call(shlex.split("alacritty --class AlacrittyAgy -e agy"), start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),
-            call(shlex.split("omarchy-launch-webapp https://gemini.google.com/app?hl=es"), start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),
-            call(shlex.split("brave https://youtube.com"), start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        ])
-
-        # Assert final primary workspace focus
+        # Assert apps launched via Hyprland Lua exec_cmd with workspace routing
         mock_run.assert_any_call(
-            ["hyprctl", "dispatch", 'hl.dsp.focus({ workspace = "1" })'],
-            capture_output=True,
-            text=True
+            ["hyprctl", "eval", 'hl.dsp.exec_cmd("[workspace 1 silent] alacritty --class AlacrittyAgy -e agy")'],
+            capture_output=True, text=True
+        )
+        mock_run.assert_any_call(
+            ["hyprctl", "eval", 'hl.dsp.exec_cmd("[workspace 2 silent] omarchy-launch-webapp https://gemini.google.com/app?hl=es")'],
+            capture_output=True, text=True
+        )
+        mock_run.assert_any_call(
+            ["hyprctl", "eval", 'hl.dsp.exec_cmd("[workspace 9 silent] brave https://youtube.com")'],
+            capture_output=True, text=True
+        )
+
+        # Assert final primary workspace focus via eval
+        mock_run.assert_any_call(
+            ["hyprctl", "eval", 'hl.dsp.exec_cmd("workspace 1")'],
+            capture_output=True, text=True
         )
 
         # Assert YouTube playback was called for "mix de Ariel coronel"

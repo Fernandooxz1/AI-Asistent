@@ -74,24 +74,48 @@ class SceneActionModule(ActionModule):
         """
         app_cmd_lower = app_cmd.lower()
         match_configs = []
+        native_rules = []
         
         if "notebooklm.google.com" in app_cmd_lower:
             match_configs.append("{ class = \"notebooklm\" }")
+            match_configs.append("{ class = \"brave-notebooklm.google.com__app-default\" }")
+            match_configs.append("{ class = \".*notebooklm.*\" }")
             match_configs.append("{ title = \"NotebookLM\" }")
+            match_configs.append("{ title = \".*NotebookLM.*\" }")
+            native_rules.append("class:^brave-notebooklm\\.google\\.com__app-default$")
+            native_rules.append("class:.*notebooklm.*")
+            native_rules.append("title:.*NotebookLM.*")
         elif "gemini.google.com" in app_cmd_lower:
             match_configs.append("{ class = \"gemini\" }")
+            match_configs.append("{ class = \"brave-gemini.google.com__app-default\" }")
+            match_configs.append("{ class = \".*gemini.*\" }")
             match_configs.append("{ title = \"Gemini\" }")
+            match_configs.append("{ title = \".*Gemini.*\" }")
+            native_rules.append("class:^brave-gemini\\.google\\.com__app-default$")
+            native_rules.append("class:.*gemini.*")
+            native_rules.append("title:.*Gemini.*")
         elif "agy" in app_cmd_lower:
             match_configs.append("{ class = \"AlacrittyAgy\" }")
             match_configs.append("{ title = \"agy\" }")
+            native_rules.append("class:^AlacrittyAgy$")
+            native_rules.append("title:.*agy.*")
         elif "youtube.com" in app_cmd_lower or "youtube" in app_cmd_lower:
             match_configs.append("{ class = \"youtube\" }")
+            match_configs.append("{ class = \"chrome-youtube.com__-Default\" }")
+            match_configs.append("{ class = \"brave-youtube.com__-Default\" }")
             match_configs.append("{ title = \"YouTube\" }")
+            native_rules.append("class:.*youtube.*")
+            native_rules.append("title:.*YouTube.*")
             
         for match in match_configs:
             eval_cmd = f'hl.window_rule({{ match = {match}, workspace = "{workspace}" }})'
             logger.info(f"Registrando regla de ventana dinámica vía Lua: {eval_cmd}")
             subprocess.run(["hyprctl", "eval", eval_cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        for rule in native_rules:
+            native_cmd = f"workspace {workspace} silent, {rule}"
+            logger.info(f"Registrando regla de ventana nativa Hyprland: {native_cmd}")
+            subprocess.run(["hyprctl", "keyword", "windowrulev2", native_cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def execute(self, entities: Dict[str, Any]) -> bool:
         """
@@ -171,17 +195,29 @@ class SceneActionModule(ActionModule):
                     if workspace is not None:
                         target_workspaces.append(workspace)
                         
-                        # 1. Registrar las reglas de ventana dinámicas en Hyprland para que se enruten correctamente
+                        # 1. Registrar reglas de ventana para enrutamiento persistente
                         self._register_temp_window_rule(app, workspace)
                         
-                        # 2. Modificar Alacritty para que use la clase esperada por la regla de ventana
+                        # 2. Modificar Alacritty para que use la clase esperada
                         if "alacritty" in app.lower() and "agy" in app.lower() and "--class" not in app.lower():
                             app = app.replace("alacritty", "alacritty --class AlacrittyAgy")
 
-                    logger.info(f"Lanzando aplicación en segundo plano: {app}")
-                    args = shlex.split(app)
-                    subprocess.Popen(args, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    time.sleep(0.3)  # Pequeño delay de espaciado secuencial
+                        # 3. Lanzar la app directamente en el workspace objetivo vía Hyprland Lua
+                        exec_cmd = f'hl.dsp.exec_cmd("[workspace {workspace} silent] {app}")'
+                        logger.info(f"Lanzando aplicación vía Hyprland Lua en workspace {workspace}: {app}")
+                        res = subprocess.run(["hyprctl", "eval", exec_cmd], capture_output=True, text=True)
+                        if res.returncode != 0 or "error" in res.stdout.lower():
+                            # Fallback: lanzar directamente con Popen
+                            logger.warning(f"Fallback a Popen para '{app}': {res.stdout.strip()}")
+                            args = shlex.split(app)
+                            subprocess.Popen(args, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    else:
+                        # Sin workspace específico, lanzar directamente
+                        logger.info(f"Lanzando aplicación en segundo plano: {app}")
+                        args = shlex.split(app)
+                        subprocess.Popen(args, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                    time.sleep(0.4)  # Delay de espaciado secuencial para evitar carreras
                 except Exception as e:
                     logger.error(f"Error al abrir la aplicación '{app}': {e}")
 
@@ -249,11 +285,12 @@ class SceneActionModule(ActionModule):
         if target_workspaces:
             primary_ws = target_workspaces[0]
             logger.info(f"Enfocando workspace principal al finalizar: {primary_ws}")
-            # Intentar enfocar con Lua primero
-            ws_cmd = f'hl.dsp.focus({{ workspace = "{primary_ws}" }})'
-            res = subprocess.run(["hyprctl", "dispatch", ws_cmd], capture_output=True, text=True)
+            # Enfocar con Lua vía hyprctl eval
+            ws_cmd = f'hl.dsp.exec_cmd("workspace {primary_ws}")'
+            res = subprocess.run(["hyprctl", "eval", ws_cmd], capture_output=True, text=True)
             if res.returncode != 0 or "error" in res.stdout.lower():
                 # Fallback estándar
-                subprocess.run(["hyprctl", "dispatch", "workspace", str(primary_ws)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                logger.warning(f"Fallback para enfoque de workspace: {res.stdout.strip()}")
+                subprocess.run(["hyprctl", "eval", f'hl.dsp.workspace("{primary_ws}")'], capture_output=True, text=True)
 
         logger.info(f"Escenario '{escenario_name}' activado con éxito de forma asíncrona.")

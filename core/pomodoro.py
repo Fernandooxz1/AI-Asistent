@@ -16,10 +16,11 @@ class PomodoroTimer:
         self.state = "work"  # "work" or "rest"
         
         self.thread = None
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.stop_event = threading.Event()
         
     def start(self):
+        should_broadcast = False
         with self.lock:
             if not self.active:
                 self.active = True
@@ -29,14 +30,19 @@ class PomodoroTimer:
                     self.thread = threading.Thread(target=self._run_loop, daemon=True)
                     self.thread.start()
                 logger.info("Pomodoro timer started.")
-                self.broadcast_state()
+                should_broadcast = True
+        if should_broadcast:
+            self.broadcast_state()
 
     def pause(self):
+        should_broadcast = False
         with self.lock:
             if self.active:
                 self.active = False
                 logger.info("Pomodoro timer paused.")
-                self.broadcast_state()
+                should_broadcast = True
+        if should_broadcast:
+            self.broadcast_state()
 
     def reset(self):
         with self.lock:
@@ -45,7 +51,7 @@ class PomodoroTimer:
             self.duration = self.work_duration
             self.time_left = self.work_duration
             logger.info("Pomodoro timer reset.")
-            self.broadcast_state()
+        self.broadcast_state()
 
     def get_status(self):
         with self.lock:
