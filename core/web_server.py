@@ -773,10 +773,12 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = Query(
                     scene_name = data.get("name")
                     if assistant_instance and scene_name:
                         assistant_instance.activate_scene(scene_name)
-
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
         logger.info("Cliente WebSocket desconectado.")
+    except Exception as e:
+        logger.error(f"WebSocket error inesperado: {e}")
+    finally:
+        manager.disconnect(websocket)
         # Si no quedan conexiones activas, restablecer automáticamente al micrófono de la PC
         if len(manager.active_connections) == 0:
             logger.info("No quedan clientes activos conectados. Restableciendo al micrófono de la PC...")

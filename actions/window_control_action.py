@@ -131,7 +131,7 @@ class WindowControlActionModule(ActionModule):
                 lua_cmd = f'hl.dsp.window.close("address:{address}")'
                 logger.info(f"Intentando cerrar ventana vía Hyprland-Lua: {lua_cmd}")
                 res = subprocess.run(
-                    ["hyprctl", "dispatch", lua_cmd],
+                    ["hyprctl", "eval", lua_cmd],
                     capture_output=True,
                     text=True
                 )

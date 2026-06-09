@@ -77,7 +77,7 @@ class TestWindowControlActionModule(unittest.TestCase):
             check=True
         )
         mock_run.assert_any_call(
-            ["hyprctl", "dispatch", 'hl.dsp.window.close("address:0x565032688c50")'],
+            ["hyprctl", "eval", 'hl.dsp.window.close("address:0x565032688c50")'],
             capture_output=True,
             text=True
         )
@@ -145,7 +145,7 @@ class TestWindowControlActionModule(unittest.TestCase):
         self.assertTrue(result)
         # Verify both commands were tried
         mock_run.assert_any_call(
-            ["hyprctl", "dispatch", 'hl.dsp.window.close("address:0x565032688c50")'],
+            ["hyprctl", "eval", 'hl.dsp.window.close("address:0x565032688c50")'],
             capture_output=True,
             text=True
         )

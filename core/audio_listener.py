@@ -415,16 +415,12 @@ class AudioListener:
                 elapsed = current_time - start_time
 
                 # Leer buffer de audio
-                data = stream.read(1024, exception_on_overflow=False)
-                if len(data) == 0:
+                raw_data = stream.read(1024, exception_on_overflow=False)
+                if len(raw_data) == 0:
                     continue
 
-                # Aplicar puerta de ruido
-                data = self._apply_noise_gate(data)
-                frames.append(data)
-
-                # Calcular energía del chunk para control de silencio (castear a float32 para evitar desbordamiento)
-                audio_data = np.frombuffer(data, dtype=np.int16).astype(np.float32)
+                # Calcular energía del chunk original para control de silencio (castear a float32 para evitar desbordamiento)
+                audio_data = np.frombuffer(raw_data, dtype=np.int16).astype(np.float32)
                 if len(audio_data) > 0:
                     energy = np.sqrt(np.mean(np.square(audio_data)))
                 else:
@@ -432,6 +428,10 @@ class AudioListener:
                 
                 # Guardar energía actual para la GUI
                 self.current_energy = energy
+
+                # Aplicar puerta de ruido al chunk que se guarda para transcripción
+                data_filtered = self._apply_noise_gate(raw_data)
+                frames.append(data_filtered)
 
 
                 # Detectar si el usuario empezó a hablar
