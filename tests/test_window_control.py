@@ -156,6 +156,45 @@ class TestWindowControlActionModule(unittest.TestCase):
             check=True
         )
 
+    @patch("subprocess.run")
+    def test_execute_lua_unsupported_fallback(self, mock_run):
+        # Mock clients JSON response
+        clients_json = json.dumps([
+            {
+                "address": "0x565032688c50",
+                "class": "brave",
+                "title": "Brave Browser"
+            }
+        ])
+
+        # Lua command returns code 0 but with unsupported warning, fallback succeeds
+        mock_res_clients = MagicMock(returncode=0, stdout=clients_json)
+        mock_res_lua_unsupported = MagicMock(returncode=0, stdout="eval is only supported with the lua config manager")
+        mock_res_fallback_ok = MagicMock(returncode=0)
+
+        mock_run.side_effect = [
+            mock_res_clients,
+            mock_res_lua_unsupported,
+            mock_res_fallback_ok
+        ]
+
+        module = WindowControlActionModule()
+        result = module.execute({"ventana_query": "brave"})
+
+        self.assertTrue(result)
+        # Verify both commands were tried
+        mock_run.assert_any_call(
+            ["hyprctl", "eval", 'hl.dsp.window.close("address:0x565032688c50")'],
+            capture_output=True,
+            text=True
+        )
+        mock_run.assert_any_call(
+            ["hyprctl", "dispatch", "closewindow", "address:0x565032688c50"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

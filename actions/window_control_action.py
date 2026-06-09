@@ -135,11 +135,12 @@ class WindowControlActionModule(ActionModule):
                     capture_output=True,
                     text=True
                 )
-                if res.returncode == 0 and "error" not in res.stdout.lower():
+                if res.returncode == 0 and res.stdout and "error" not in res.stdout.lower() and "only supported" not in res.stdout.lower():
                     logger.info(f"Ventana '{title}' cerrada exitosamente vía Hyprland-Lua.")
                     return True
                 else:
-                    logger.warning(f"Comando Lua retornó error o salida no esperada: {res.stdout.strip()}")
+                    stdout_str = res.stdout.strip() if res.stdout else ""
+                    logger.warning(f"Comando Lua retornó error o salida no esperada: {stdout_str}")
             except Exception as e:
                 logger.warning(f"Error al intentar cerrar vía Lua: {e}")
 
