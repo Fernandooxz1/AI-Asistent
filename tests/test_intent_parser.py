@@ -7,7 +7,8 @@ class TestIntentParser(unittest.TestCase):
     def setUp(self):
         self.config = {
             "model_name": "llama3",
-            "intents": ["abrir_streaming", "buscar_video", "cerrar_ventana"],
+            "intents": ["abrir_streaming", "buscar_video", "cerrar_ventana", "abrir_aplicacion"],
+            "whitelist_apps": ["steam"],
             "keyboard_macros": {
                 "cierra la ventana": [
                     {"type": "ydotool", "args": ["key", "-d", "100", "125:1", "17:1", "17:0", "125:0"]}
@@ -109,6 +110,13 @@ class TestIntentParser(unittest.TestCase):
         # Number as Spanish word
         result_word = self.parser.parse("cierra la ventana de notebooklm en el escritorio dos")
         self.assertEqual(result_word[0]["entities"]["workspace"], "2")
+
+    def test_abri_template_match(self):
+        # abrí steam en el workspace 3 should match local template for abrir_aplicacion and have workspace 3
+        result = self.parser.parse("abrí steam en el workspace 3")
+        self.assertEqual(result[0]["intent"], "abrir_aplicacion")
+        self.assertEqual(result[0]["entities"]["programa"], "steam")
+        self.assertEqual(result[0]["entities"]["workspace"], "3")
 
 
 if __name__ == '__main__':

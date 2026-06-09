@@ -151,7 +151,12 @@ class YoutubePlayActionModule(ActionModule):
             workspace_num = entities.get("workspace")
             if workspace_num:
                 import subprocess
-                cmd_str = f"[workspace {workspace_num} silent] xdg-open {watch_url}"
+                from core.utils import get_browser_command
+                browser_cmd = get_browser_command()
+                if browser_cmd != "xdg-open":
+                    cmd_str = f"[workspace {workspace_num} silent] {browser_cmd} --new-window {watch_url}"
+                else:
+                    cmd_str = f"[workspace {workspace_num} silent] xdg-open {watch_url}"
                 logger.info(f"Abriendo video en workspace {workspace_num}: {cmd_str}")
                 subprocess.Popen(["hyprctl", "dispatch", "exec", cmd_str], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:

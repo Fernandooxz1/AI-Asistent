@@ -14,11 +14,13 @@ DEFAULT_TEMPLATES = {
         r"ejecutar (?P<programa>[a-zA-Z0-9_\-\s]+)",
         r"lanzar (?P<programa>[a-zA-Z0-9_\-\s]+)",
         r"abre (?P<programa>[a-zA-Z0-9_\-\s]+)",
+        r"abri (?P<programa>[a-zA-Z0-9_\-\s]+)",
         r"inicia (?P<programa>[a-zA-Z0-9_\-\s]+)"
     ],
     "abrir_navegador": [
         r"abrir (?P<plataforma>youtube|google|twitch|kick|google\s+brave|brave|navegador)",
         r"abre (?P<plataforma>youtube|google|twitch|kick|google\s+brave|brave|navegador)",
+        r"abri (?P<plataforma>youtube|google|twitch|kick|google\s+brave|brave|navegador)",
         r"buscar en (?P<plataforma>youtube|google)\s+(?P<busqueda>.+)",
         r"busca en (?P<plataforma>youtube|google)\s+(?P<busqueda>.+)",
         r"buscar (?P<busqueda>.+)\s+en (?P<plataforma>youtube|google)",
@@ -31,7 +33,9 @@ DEFAULT_TEMPLATES = {
         r"abrir la pagina de (?P<busqueda>.+)",
         r"abrir la página de (?P<busqueda>.+)",
         r"abre la pagina de (?P<busqueda>.+)",
-        r"abre la página de (?P<busqueda>.+)"
+        r"abre la página de (?P<busqueda>.+)",
+        r"abri la pagina de (?P<busqueda>.+)",
+        r"abri la página de (?P<busqueda>.+)"
     ],
     "reproducir_youtube": [
         r"reproducir (?P<busqueda>.+)",
@@ -42,6 +46,7 @@ DEFAULT_TEMPLATES = {
     ],
     "lanzar_juego": [
         r"abrir (?P<juego>[a-zA-Z0-9_\-\s]+)",
+        r"abri (?P<juego>[a-zA-Z0-9_\-\s]+)",
         r"iniciar (?P<juego>[a-zA-Z0-9_\-\s]+)",
         r"lanzar (?P<juego>[a-zA-Z0-9_\-\s]+)",
         r"jugar (?P<juego>[a-zA-Z0-9_\-\s]+)",

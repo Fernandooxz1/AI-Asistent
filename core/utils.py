@@ -146,3 +146,39 @@ def change_pc_volume_relative(delta: int) -> None:
         set_pc_volume(new_vol)
 
 
+def get_browser_command() -> str:
+    """
+    Determina de forma dinámica el comando ejecutable del navegador web predeterminado
+    leyendo la configuración de XDG e inspeccionando el correspondiente archivo .desktop.
+    """
+    try:
+        import subprocess
+        res = subprocess.run(["xdg-settings", "get", "default-web-browser"], capture_output=True, text=True, timeout=2)
+        desktop_file = res.stdout.strip()
+        if desktop_file:
+            paths = [
+                os.path.expanduser(f"~/.local/share/applications/{desktop_file}"),
+                f"/usr/share/applications/{desktop_file}",
+                f"/usr/local/share/applications/{desktop_file}"
+            ]
+            for path in paths:
+                if os.path.exists(path):
+                    with open(path, "r", errors="ignore") as f:
+                        for line in f:
+                            if line.startswith("Exec="):
+                                exec_val = line.split("=", 1)[1].strip()
+                                cmd = exec_val.split()[0]
+                                cmd = cmd.replace('"', '').replace("'", "")
+                                return os.path.basename(cmd)
+    except Exception as e:
+        logger.debug(f"Error al determinar navegador por .desktop: {e}")
+
+    # Fallbacks si no se pudo determinar
+    import shutil
+    for fallback in ["brave", "firefox", "google-chrome", "chromium", "zen-browser", "microsoft-edge-stable"]:
+        if shutil.which(fallback):
+            return fallback
+
+    return "xdg-open"
+
+
