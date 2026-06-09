@@ -234,7 +234,37 @@ class IntentParser:
                     
         return None
 
-    def parse(self, text: str) -> dict:
+    def _extract_workspace_info(self, text: str):
+        import re
+        words_map = {
+            "uno": "1", "dos": "2", "tres": "3", "cuatro": "4", "cinco": "5",
+            "seis": "6", "siete": "7", "ocho": "8", "nueve": "9", "diez": "10"
+        }
+        pattern = r"\b(?:en\s+el\s+)?(?:workspace|escritorio|area\s+de\s+trabajo)\s+(\d+|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\b"
+        match = re.search(pattern, text, re.IGNORECASE)
+        workspace_num = None
+        if match:
+            val = match.group(1).lower()
+            workspace_num = words_map.get(val, val)
+            text = re.sub(pattern, "", text, flags=re.IGNORECASE)
+            text = " ".join(text.split()).strip()
+        return text, workspace_num
+
+    def parse(self, text: str) -> list:
+        # Extraer workspace si está especificado en el comando
+        text, workspace_num = self._extract_workspace_info(text)
+        
+        results = self._parse_internal(text)
+        
+        if workspace_num and isinstance(results, list):
+            for cmd in results:
+                if isinstance(cmd, dict):
+                    if "entities" not in cmd:
+                        cmd["entities"] = {}
+                    cmd["entities"]["workspace"] = workspace_num
+        return results
+
+    def _parse_internal(self, text: str) -> dict:
         """Toma el texto del usuario y lo clasifica en un intent con sus entidades
         usando Ollama.
         """

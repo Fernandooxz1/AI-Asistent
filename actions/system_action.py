@@ -285,6 +285,12 @@ class SystemActionModule(ActionModule):
             else:
                 logger.info(f"Lanzando aplicación gráfica en segundo plano: {args}")
 
+            workspace_num = entities.get("workspace")
+            if workspace_num:
+                cmd_str = f"[workspace {workspace_num} silent] {shlex.join(args)}"
+                logger.info(f"Lanzando aplicación en workspace {workspace_num}: {cmd_str}")
+                args = ["hyprctl", "dispatch", "exec", cmd_str]
+
             subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return True
 

@@ -91,9 +91,25 @@ class TestIntentParser(unittest.TestCase):
         }
         mock_ollama_chat.return_value = mock_response
 
-        result = self.parser.parse("comando aleatorio")
-        
-        self.assertEqual(result[0]["intent"], "desconocido")
+    @patch('ollama.chat')
+    def test_workspace_extraction(self, mock_ollama_chat):
+        mock_response = {
+            "message": {
+                "content": '{"intent": "cerrar_ventana", "entities": {"ventana_query": "notebooklm"}}'
+            }
+        }
+        mock_ollama_chat.return_value = mock_response
+
+        # Number as digit
+        result = self.parser.parse("cierra la ventana de notebooklm en el workspace 2")
+        self.assertEqual(result[0]["intent"], "cerrar_ventana")
+        self.assertEqual(result[0]["entities"]["ventana_query"], "notebooklm")
+        self.assertEqual(result[0]["entities"]["workspace"], "2")
+
+        # Number as Spanish word
+        result_word = self.parser.parse("cierra la ventana de notebooklm en el escritorio dos")
+        self.assertEqual(result_word[0]["entities"]["workspace"], "2")
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -169,8 +169,15 @@ class BrowserActionModule(ActionModule):
                 logger.error(f"No se pudo construir la URL para la plataforma '{plataforma}'.")
                 return False
 
-            logger.info(f"Abriendo URL en el navegador: {url}")
-            webbrowser.open(url)
+            workspace_num = entities.get("workspace")
+            if workspace_num:
+                import subprocess
+                cmd_str = f"[workspace {workspace_num} silent] xdg-open {url}"
+                logger.info(f"Abriendo URL en workspace {workspace_num}: {cmd_str}")
+                subprocess.Popen(["hyprctl", "dispatch", "exec", cmd_str], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                logger.info(f"Abriendo URL en el navegador: {url}")
+                webbrowser.open(url)
             return True
 
         except Exception as e:

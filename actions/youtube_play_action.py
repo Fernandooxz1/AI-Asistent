@@ -148,8 +148,15 @@ class YoutubePlayActionModule(ActionModule):
                 return False
 
             watch_url = f"https://www.youtube.com/watch?v={video_id}"
-            logger.info(f"Abriendo video en el navegador: {watch_url}")
-            webbrowser.open(watch_url)
+            workspace_num = entities.get("workspace")
+            if workspace_num:
+                import subprocess
+                cmd_str = f"[workspace {workspace_num} silent] xdg-open {watch_url}"
+                logger.info(f"Abriendo video en workspace {workspace_num}: {cmd_str}")
+                subprocess.Popen(["hyprctl", "dispatch", "exec", cmd_str], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                logger.info(f"Abriendo video en el navegador: {watch_url}")
+                webbrowser.open(watch_url)
             return True
 
         except urllib.error.URLError as e:
