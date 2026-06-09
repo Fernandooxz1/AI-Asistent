@@ -73,10 +73,10 @@
       {"type": "comando", "args": ["pkill", "-f", "viernes"]}
     ],
     "cierra la ventana": [
-      {"type": "ydotool", "args": ["key", "125:1", "17:1", "17:0", "125:0"]}
+      {"type": "ydotool", "args": ["key", "-d", "100", "125:1", "17:1", "17:0", "125:0"]}
     ],
     "poneme promiedos": [
-      {"type": "ydotool", "args": ["key", "125:1","42:1", "25:1", "25:0", "42:0", "125:0"]}
+      {"type": "ydotool", "args": ["key", "-d", "100", "125:1", "42:1", "25:1", "25:0", "42:0", "125:0"]}
     ]
   },
   "games": {

@@ -128,7 +128,11 @@ class IntentParser:
         for macro in macros_dict.keys():
             macro_norm = unicodedata.normalize('NFKD', macro.lower()).encode('ASCII', 'ignore').decode('utf-8').strip()
             if macro_norm in text_norm:
-                score = 100.0
+                # Evitar que 'cierra la ventana' intercepte órdenes específicas de cerrar una ventana particular
+                if macro_norm == "cierra la ventana" and macro_norm != text_norm:
+                    score = fuzz.ratio(macro_norm, text_norm)
+                else:
+                    score = 100.0
             else:
                 score = fuzz.ratio(macro_norm, text_norm)
             if score > best_score:
@@ -270,7 +274,11 @@ class IntentParser:
                     
                     # 1. Coincidencia exacta de substring (Prioridad máxima)
                     if macro_norm in text_norm:
-                        score = 100.0
+                        # Evitar que 'cierra la ventana' intercepte órdenes específicas de cerrar una ventana particular
+                        if macro_norm == "cierra la ventana" and macro_norm != text_norm:
+                            score = fuzz.ratio(macro_norm, text_norm)
+                        else:
+                            score = 100.0
                     else:
                         # 2. Coincidencia difusa usando el ratio de Levenshtein
                         score = fuzz.ratio(macro_norm, text_norm)

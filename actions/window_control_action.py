@@ -22,6 +22,29 @@ def normalize_text(text: str) -> str:
     ).lower().strip()
 
 
+def clean_query_words(query: str) -> str:
+    """
+    Elimina artículos y palabras genéricas (como 'video', 'ventana') de la consulta
+    para mejorar la tasa de acierto del fuzzy matching.
+    """
+    if not query:
+        return ""
+    normalized = normalize_text(query)
+    stop_phrases = [
+        "la ventana de", "el video de", "el stream de", "la pestana de", "la pagina de",
+        "ventana de", "video de", "stream de", "pestana de", "pagina de",
+        "ventana", "video", "stream", "pestana", "pagina", "aplicacion",
+        "el", "la", "los", "las", "un", "una", "de", "del"
+    ]
+    import re
+    for phrase in stop_phrases:
+        pattern = r"\b" + re.escape(phrase) + r"\b"
+        normalized = re.sub(pattern, "", normalized)
+    
+    cleaned = " ".join(normalized.split()).strip()
+    return cleaned if cleaned else normalize_text(query)
+
+
 def get_similarity(query: str, target: str) -> float:
     """
     Calcula la similitud entre un término de búsqueda (query) y un objetivo (target).
@@ -70,6 +93,10 @@ class WindowControlActionModule(ActionModule):
         ventana_query = entities["ventana_query"].strip()
         logger.info(f"Iniciando búsqueda de ventana para cerrar con el criterio: '{ventana_query}'")
 
+        cleaned_query = clean_query_words(ventana_query)
+        if cleaned_query != normalize_text(ventana_query):
+            logger.info(f"Criterio simplificado para búsqueda: '{cleaned_query}'")
+
         # 1. Obtener los clientes de Hyprland
         try:
             result = subprocess.run(
@@ -108,8 +135,8 @@ class WindowControlActionModule(ActionModule):
             clazz = client.get("class", "")
 
             # Calcular la similitud con título y clase
-            score_title = get_similarity(ventana_query, title)
-            score_class = get_similarity(ventana_query, clazz)
+            score_title = get_similarity(cleaned_query, title)
+            score_class = get_similarity(cleaned_query, clazz)
 
             max_score = max(score_title, score_class)
             if max_score > best_score:

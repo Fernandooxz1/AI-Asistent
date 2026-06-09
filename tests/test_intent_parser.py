@@ -7,7 +7,18 @@ class TestIntentParser(unittest.TestCase):
     def setUp(self):
         self.config = {
             "model_name": "llama3",
-            "intents": ["abrir_streaming", "buscar_video"]
+            "intents": ["abrir_streaming", "buscar_video", "cerrar_ventana"],
+            "keyboard_macros": {
+                "cierra la ventana": [
+                    {"type": "ydotool", "args": ["key", "-d", "100", "125:1", "17:1", "17:0", "125:0"]}
+                ],
+                "pausa": [
+                    {"type": "ydotool", "args": ["key", "57:1", "57:0"]}
+                ]
+            },
+            "phonetics": {
+                "cerrar la ventana": "cierra la ventana"
+            }
         }
         self.parser = IntentParser(self.config)
 
@@ -28,6 +39,32 @@ class TestIntentParser(unittest.TestCase):
     def test_validate_intent_json_missing_keys(self):
         invalid_json = {"only_intent": "abrir_streaming"}
         self.assertFalse(self.parser._validate_intent_json(invalid_json))
+
+    def test_macro_exact_match_cortocircuito(self):
+        # Exact match command should trigger the cortocircuito instantly
+        result = self.parser.parse("cierra la ventana")
+        self.assertEqual(result[0]["intent"], "automatizacion_teclado")
+        self.assertEqual(result[0]["entities"]["macro"], "cierra la ventana")
+
+    def test_macro_phonetic_match_cortocircuito(self):
+        # Phonetic match should also map and trigger the cortocircuito
+        result = self.parser.parse("cerrar la ventana")
+        self.assertEqual(result[0]["intent"], "automatizacion_teclado")
+        self.assertEqual(result[0]["entities"]["macro"], "cierra la ventana")
+
+    @patch('ollama.chat')
+    def test_macro_hijack_prevention(self, mock_ollama_chat):
+        # Specific window targeting should NOT trigger the generic "cierra la ventana" cortocircuito macro
+        mock_response = {
+            "message": {
+                "content": '{"intent": "cerrar_ventana", "entities": {"ventana_query": "notebooklm"}}'
+            }
+        }
+        mock_ollama_chat.return_value = mock_response
+
+        result = self.parser.parse("cierra la ventana de notebooklm")
+        self.assertEqual(result[0]["intent"], "cerrar_ventana")
+        self.assertEqual(result[0]["entities"]["ventana_query"], "notebooklm")
 
     @patch('ollama.chat')
     def test_parse_success(self, mock_ollama_chat):

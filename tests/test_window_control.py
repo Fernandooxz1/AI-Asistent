@@ -3,10 +3,18 @@ from unittest.mock import patch, MagicMock
 import subprocess
 import json
 
-from actions.window_control_action import WindowControlActionModule, get_similarity, normalize_text
+from actions.window_control_action import WindowControlActionModule, get_similarity, normalize_text, clean_query_words
 
 
 class TestWindowControlActionModule(unittest.TestCase):
+
+    def test_clean_query_words(self):
+        self.assertEqual(clean_query_words("el video de youtube"), "youtube")
+        self.assertEqual(clean_query_words("la ventana de brave"), "brave")
+        self.assertEqual(clean_query_words("el stream de davo"), "davo")
+        self.assertEqual(clean_query_words("notebookLM"), "notebooklm")
+        self.assertEqual(clean_query_words(""), "")
+        self.assertEqual(clean_query_words(None), "")
 
     def test_normalize_text(self):
         self.assertEqual(normalize_text("Café"), "cafe")

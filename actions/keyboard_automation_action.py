@@ -194,14 +194,15 @@ class KeyboardAutomationModule:
 
             logger.info(f"Pulsando combinación: {keys} -> {key_codes}")
             
-            # Press keys with 0.2s delay
-            for code in key_codes:
-                subprocess.run(["ydotool", "key", f"{code}:1"], stdout=subprocess.DEVNULL)
-                time.sleep(0.2)
-
-            # Release keys in reverse order
-            for code in reversed(key_codes):
-                subprocess.run(["ydotool", "key", f"{code}:0"], stdout=subprocess.DEVNULL)
+            try:
+                # Press keys with 0.2s delay
+                for code in key_codes:
+                    subprocess.run(["ydotool", "key", f"{code}:1"], stdout=subprocess.DEVNULL)
+                    time.sleep(0.2)
+            finally:
+                # Release keys in reverse order
+                for code in reversed(key_codes):
+                    subprocess.run(["ydotool", "key", f"{code}:0"], stdout=subprocess.DEVNULL)
             
             # Small delay after release
             time.sleep(0.05)
