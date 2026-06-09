@@ -118,6 +118,18 @@ class TestIntentParser(unittest.TestCase):
         self.assertEqual(result[0]["entities"]["programa"], "steam")
         self.assertEqual(result[0]["entities"]["workspace"], "3")
 
+    @patch("actions.game_launcher_action.find_desktop_file_info")
+    def test_local_game_desktop_match(self, mock_find):
+        mock_find.return_value = {
+            "name": "Baldur's Gate III",
+            "exec": "steam steam://rungameid/13747480236176441344",
+            "score": 100.0
+        }
+        result = self.parser.parse("jugar al baldur's gate 3")
+        self.assertEqual(result[0]["intent"], "lanzar_juego")
+        self.assertEqual(result[0]["entities"]["juego"], "Baldur's Gate III")
+
 
 if __name__ == '__main__':
     unittest.main()
+

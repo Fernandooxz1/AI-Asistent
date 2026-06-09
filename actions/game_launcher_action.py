@@ -26,10 +26,10 @@ def replace_roman_numerals(text: str) -> str:
     return text
 
 
-def find_and_launch_desktop_file(query_name: str, workspace_num: str = None) -> bool:
+def find_desktop_file_info(query_name: str) -> dict:
     """
-    Busca un archivo .desktop cuyo campo Name coincida con la búsqueda y lo ejecuta,
-    opcionalmente en un workspace de Hyprland específico.
+    Busca un archivo .desktop cuyo campo Name o nombre de archivo coincida con la búsqueda.
+    Retorna un diccionario con {'name': name, 'exec': exec_path, 'score': score} o None.
     """
     def normalize(text):
         import unicodedata
@@ -43,7 +43,7 @@ def find_and_launch_desktop_file(query_name: str, workspace_num: str = None) -> 
 
     query_norm = normalize(query_name)
     if not query_norm:
-        return False
+        return None
 
     dirs = [
         os.path.expanduser("~/.local/share/applications"),
@@ -95,25 +95,47 @@ def find_and_launch_desktop_file(query_name: str, workspace_num: str = None) -> 
                     continue
 
     if best_exec and best_score >= 75.0:
-        logger.info(f"Encontrado archivo .desktop para '{query_name}': '{best_name}' (coincidencia: {best_score:.1f}%)")
-        try:
-            args = shlex.split(best_exec)
-            if not args:
-                return False
+        return {
+            "name": best_name,
+            "exec": best_exec,
+            "score": best_score
+        }
+    return None
 
-            if workspace_num:
-                cmd_str = f"[workspace {workspace_num} silent] {shlex.join(args)}"
-                logger.info(f"Lanzando juego/app desde .desktop en workspace {workspace_num}: {cmd_str}")
-                args = ["hyprctl", "dispatch", "exec", cmd_str]
-            else:
-                logger.info(f"Lanzando juego/app desde .desktop: {args}")
 
-            subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            return True
-        except Exception as e:
-            logger.error(f"Error al lanzar comando del .desktop: {e}")
+def find_and_launch_desktop_file(query_name: str, workspace_num: str = None) -> bool:
+    """
+    Busca un archivo .desktop cuyo campo Name coincida con la búsqueda y lo ejecuta,
+    opcionalmente en un workspace de Hyprland específico.
+    """
+    info = find_desktop_file_info(query_name)
+    if not info:
+        return False
+
+    best_name = info["name"]
+    best_exec = info["exec"]
+    best_score = info["score"]
+
+    logger.info(f"Encontrado archivo .desktop para '{query_name}': '{best_name}' (coincidencia: {best_score:.1f}%)")
+    try:
+        args = shlex.split(best_exec)
+        if not args:
+            return False
+
+        if workspace_num:
+            cmd_str = f"[workspace {workspace_num} silent] {shlex.join(args)}"
+            logger.info(f"Lanzando juego/app desde .desktop en workspace {workspace_num}: {cmd_str}")
+            args = ["hyprctl", "dispatch", "exec", cmd_str]
+        else:
+            logger.info(f"Lanzando juego/app desde .desktop: {args}")
+
+        subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return True
+    except Exception as e:
+        logger.error(f"Error al lanzar comando del .desktop: {e}")
 
     return False
+
 
 class GameLauncherModule:
     """Módulo encargado de lanzar videojuegos dinámicamente.

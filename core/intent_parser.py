@@ -9,13 +9,13 @@ logger = logging.getLogger("Viernes")
 
 DEFAULT_TEMPLATES = {
     "abrir_aplicacion": [
-        r"abrir (?P<programa>[a-zA-Z0-9_\-\s]+)",
-        r"iniciar (?P<programa>[a-zA-Z0-9_\-\s]+)",
-        r"ejecutar (?P<programa>[a-zA-Z0-9_\-\s]+)",
-        r"lanzar (?P<programa>[a-zA-Z0-9_\-\s]+)",
-        r"abre (?P<programa>[a-zA-Z0-9_\-\s]+)",
-        r"abri (?P<programa>[a-zA-Z0-9_\-\s]+)",
-        r"inicia (?P<programa>[a-zA-Z0-9_\-\s]+)"
+        r"abrir (?P<programa>[a-zA-Z0-9_\-\s\'.]+)",
+        r"iniciar (?P<programa>[a-zA-Z0-9_\-\s\'.]+)",
+        r"ejecutar (?P<programa>[a-zA-Z0-9_\-\s\'.]+)",
+        r"lanzar (?P<programa>[a-zA-Z0-9_\-\s\'.]+)",
+        r"abre (?P<programa>[a-zA-Z0-9_\-\s\'.]+)",
+        r"abri (?P<programa>[a-zA-Z0-9_\-\s\'.]+)",
+        r"inicia (?P<programa>[a-zA-Z0-9_\-\s\'.]+)"
     ],
     "abrir_navegador": [
         r"abrir (?P<plataforma>youtube|google|twitch|kick|google\s+brave|brave|navegador)",
@@ -45,31 +45,31 @@ DEFAULT_TEMPLATES = {
         r"pon (?P<busqueda>.+)\s+en\s+youtube"
     ],
     "lanzar_juego": [
-        r"abrir (?P<juego>[a-zA-Z0-9_\-\s]+)",
-        r"abri (?P<juego>[a-zA-Z0-9_\-\s]+)",
-        r"iniciar (?P<juego>[a-zA-Z0-9_\-\s]+)",
-        r"lanzar (?P<juego>[a-zA-Z0-9_\-\s]+)",
-        r"jugar (?P<juego>[a-zA-Z0-9_\-\s]+)",
-        r"jugar al (?P<juego>[a-zA-Z0-9_\-\s]+)"
+        r"abrir (?P<juego>[a-zA-Z0-9_\-\s\'.]+)",
+        r"abri (?P<juego>[a-zA-Z0-9_\-\s\'.]+)",
+        r"iniciar (?P<juego>[a-zA-Z0-9_\-\s\'.]+)",
+        r"lanzar (?P<juego>[a-zA-Z0-9_\-\s\'.]+)",
+        r"jugar (?P<juego>[a-zA-Z0-9_\-\s\'.]+)",
+        r"jugar al (?P<juego>[a-zA-Z0-9_\-\s\'.]+)"
     ],
     "activar_escenario": [
-        r"activar (?:el )?(?:modo |escenario )?(?P<escenario>[a-zA-Z0-9_\-\s]+)",
-        r"poner (?:el )?(?:modo |escenario )?(?P<escenario>[a-zA-Z0-9_\-\s]+)",
-        r"modo (?P<escenario>[a-zA-Z0-9_\-\s]+)"
+        r"activar (?:el )?(?:modo |escenario )?(?P<escenario>[a-zA-Z0-9_\-\s\'.]+)",
+        r"poner (?:el )?(?:modo |escenario )?(?P<escenario>[a-zA-Z0-9_\-\s\'.]+)",
+        r"modo (?P<escenario>[a-zA-Z0-9_\-\s\'.]+)"
     ],
     "cerrar_ventana": [
-        r"cerrar la ventana de (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
-        r"cierra la ventana de (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
-        r"cerra la ventana de (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
-        r"cerrar el stream de (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
-        r"cierra el stream de (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
-        r"cerra el stream de (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
-        r"cerrar la ventana (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
-        r"cierra la ventana (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
-        r"cerra la ventana (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
-        r"cerrar (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
-        r"cierra (?P<ventana_query>[a-zA-Z0-9_\-\s]+)",
-        r"cerra (?P<ventana_query>[a-zA-Z0-9_\-\s]+)"
+        r"cerrar la ventana de (?P<ventana_query>[a-zA-Z0-9_\-\s\'.]+)",
+        r"cierra la ventana de (?P<ventana_query>[a-zA-Z0-9_\-\s\'.]+)",
+        r"cerra la ventana de (?P<ventana_query>[a-zA-Z0-9_\-\s\'.]+)",
+        r"cerrar el stream de (?P<ventana_query>[a-zA-Z0-9_\-\s\'.]+)",
+        r"cierra el stream de (?P<ventana_query>[a-zA-Z0-9_\-\s\'.]+)",
+        r"cerra el stream de (?P<ventana_query>[a-zA-Z0-9_\-\s\'.]+)",
+        r"cerrar la ventana (?P<ventana_query>[a-zA-Z0-9_\-\s\'.]+)",
+        r"cierra la ventana (?P<ventana_query>[a-zA-Z0-9_\-\s\'.]+)",
+        r"cerra la ventana (?P<ventana_query>[a-zA-Z0-9_\-\s\'.]+)",
+        r"cerrar (?P<ventana_query>[a-zA-Z0-9_\-\s\'.]+)",
+        r"cierra (?P<ventana_query>[a-zA-Z0-9_\-\s\'.]+)",
+        r"cerra (?P<ventana_query>[a-zA-Z0-9_\-\s\'.]+)"
     ]
 }
 
@@ -188,8 +188,19 @@ class IntentParser:
                         entities["juego"] = matched_juego
                         entities["_raw_text"] = text
                         return {"intent": "lanzar_juego", "entities": entities}
-                    else:
-                        continue
+                    
+                    # Chequear si existe un archivo .desktop que coincida con este juego
+                    try:
+                        from actions.game_launcher_action import find_desktop_file_info
+                        info = find_desktop_file_info(juego)
+                        if info:
+                            entities["juego"] = info["name"]
+                            entities["_raw_text"] = text
+                            return {"intent": "lanzar_juego", "entities": entities}
+                    except Exception as e:
+                        logger.warning(f"Error checking .desktop files in local template matcher: {e}")
+                    
+                    continue
                 
                 elif "plataforma" in entities:
                     plat = entities["plataforma"].lower().strip()
