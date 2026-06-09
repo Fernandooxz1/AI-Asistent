@@ -320,6 +320,14 @@ class ViernesGUI(ctk.CTk):
             self._base_core_size = 20
             self._pulse_max_offset = 2
             status_text = "PROCESANDO..."
+        elif estado == "DESCARGANDO_MODELO":
+            self._accent_color = "#a855f7"       # Violeta / Púrpura
+            self._accent_secondary = "#3b0764"
+            self._anim_speed = 1.5
+            self._pulse_speed = 1.0
+            self._base_core_size = 14
+            self._pulse_max_offset = 6
+            status_text = "DESCARGANDO MODELO..."
         else:
             self._accent_color = "#4a5568"       # Gris/Inactivo
             self._accent_secondary = "#1a202c"
@@ -342,11 +350,24 @@ class ViernesGUI(ctk.CTk):
         self._hud_angle = (self._hud_angle + self._anim_speed) % 360
         self._pulse_val += 0.05 * self._pulse_speed
         
+        # Obtener energía en tiempo real de la captura de audio
+        energy = getattr(self.assistant.listener, "current_energy", 0.0)
+        energy_factor = min(energy / 1000.0, 1.5)  # Factor escalado máx 1.5
+        
         pulse_size = self._base_core_size + (self._pulse_max_offset * math.sin(self._pulse_val))
+        # Escalar el núcleo con la voz del usuario
+        pulse_size += energy_factor * 12.0
         
         # Limpiar
         self.canvas.delete("all")
+        
+        # Efecto de vibración física en los ejes cx, cy si hay sonido/voz significativo
         cx, cy = 100, 100
+        if energy > 100:
+            import random
+            shake_amt = min(energy / 150.0, 5.0)  # Desplazamiento máximo de 5 píxeles
+            cx += random.uniform(-shake_amt, shake_amt)
+            cy += random.uniform(-shake_amt, shake_amt)
 
         # Dibujar líneas de mira / retícula
         self.canvas.create_line(cx-90, cy, cx-70, cy, fill="#121e30", width=1)
@@ -356,6 +377,20 @@ class ViernesGUI(ctk.CTk):
 
         # Círculo externo tenue
         self.canvas.create_oval(cx-85, cy-85, cx+85, cy+85, outline="#101d32", width=1)
+
+        # Destellos / espigas de energía radiantes desde el exterior al hablar
+        if energy > 100:
+            spike_count = 12
+            outer_r = 85
+            max_spike_len = 14.0
+            spike_len = min((energy / 1000.0) * max_spike_len, max_spike_len)
+            for i in range(spike_count):
+                angle_rad = math.radians(i * (360 / spike_count) + self._hud_angle)
+                x1 = cx + outer_r * math.cos(angle_rad)
+                y1 = cy + outer_r * math.sin(angle_rad)
+                x2 = cx + (outer_r + spike_len) * math.cos(angle_rad)
+                y2 = cy + (outer_r + spike_len) * math.sin(angle_rad)
+                self.canvas.create_line(x1, y1, x2, y2, fill=self._accent_color, width=1)
 
         # Anillo giratorio principal (conmutador segmentado)
         self.canvas.create_arc(cx-80, cy-80, cx+80, cy+80, start=self._hud_angle, extent=60, outline=self._accent_color, width=2, style="arc")

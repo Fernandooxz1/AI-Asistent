@@ -7,7 +7,7 @@ import threading
 import json
 import time
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 
@@ -446,9 +446,9 @@ def generate_self_signed_cert():
         ).serial_number(
             x509.random_serial_number()
         ).not_valid_before(
-            datetime.utcnow() - timedelta(days=1)
+            datetime.now(timezone.utc) - timedelta(days=1)
         ).not_valid_after(
-            datetime.utcnow() + timedelta(days=365)
+            datetime.now(timezone.utc) + timedelta(days=365)
         ).add_extension(
             x509.SubjectAlternativeName(san_items),
             critical=False,
@@ -517,6 +517,18 @@ async def get_icon(icon_name: str):
             return FileResponse(icon_path, media_type="image/png")
     return {"error": f"icon-{icon_name}.png not found"}
 
+@app.get("/favicon.ico")
+async def get_favicon():
+    static_dir = get_asset_dir("static")
+    if static_dir:
+        favicon_path = os.path.join(static_dir, "favicon.ico")
+        if os.path.exists(favicon_path):
+            return FileResponse(favicon_path, media_type="image/x-icon")
+        icon_path = os.path.join(static_dir, "icon-192.png")
+        if os.path.exists(icon_path):
+            return FileResponse(icon_path, media_type="image/png")
+    return {"error": "favicon not found"}
+
 @app.get("/cert.pem")
 async def download_cert():
     if os.path.exists(CERT_PATH):
@@ -546,7 +558,7 @@ async def auth_pair(pair_token: Optional[str] = Query(None), pair_pin: Optional[
             detail="Invalid pairing token or PIN"
         )
     payload = {
-        "exp": datetime.utcnow() + timedelta(days=365),
+        "exp": datetime.now(timezone.utc) + timedelta(days=365),
         "sub": "viernes-remote-client"
     }
     token = jwt.encode(payload, JWT_PRIVATE_KEY, algorithm="RS256")

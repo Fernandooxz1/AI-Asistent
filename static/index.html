@@ -10,6 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Viernes">
   <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="icon" type="image/png" href="/icon-192.png">
   <title>Viernes Web Remote Control</title>
   <!-- Outfit Google Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1852,6 +1853,40 @@
         <!-- Controls Dashboard Section -->
         <div class="controls-grid">
           
+          <!-- iOS 18 Control Center Dual Vertical Sliders (Volume & Gain) -->
+          <div class="sliders-panel">
+            
+            <!-- Volume Vertical Slider -->
+            <div class="cc-slider-wrapper">
+              <div class="cc-vertical-slider" id="volume-vertical-slider">
+                <div class="cc-slider-fill" id="volume-vertical-fill" style="height: 70%;"></div>
+                <div class="cc-slider-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                  </svg>
+                </div>
+                <span class="cc-slider-value" id="volume-vertical-value">70%</span>
+              </div>
+              <div class="cc-slider-label">Volumen</div>
+            </div>
+
+            <!-- Digital Gain Vertical Slider -->
+            <div class="cc-slider-wrapper">
+              <div class="cc-vertical-slider" id="gain-vertical-slider">
+                <div class="cc-slider-fill" id="gain-vertical-fill" style="height: 25%;"></div>
+                <div class="cc-slider-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                </div>
+                <span class="cc-slider-value" id="gain-vertical-value">+6dB</span>
+              </div>
+              <div class="cc-slider-label">Ganancia</div>
+            </div>
+
+          </div>
+
           <!-- Media controller (System Music Automator) -->
           <div class="glass-card media-card">
             <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
@@ -1900,41 +1935,8 @@
             </div>
           </div>
 
-          <!-- iOS 18 Control Center Dual Vertical Sliders (Volume & Gain) -->
-          <div class="sliders-panel">
-            
-            <!-- Volume Vertical Slider -->
-            <div class="cc-slider-wrapper">
-              <div class="cc-vertical-slider" id="volume-vertical-slider">
-                <div class="cc-slider-fill" id="volume-vertical-fill" style="height: 70%;"></div>
-                <div class="cc-slider-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>
-                  </svg>
-                </div>
-                <span class="cc-slider-value" id="volume-vertical-value">70%</span>
-              </div>
-              <div class="cc-slider-label">Volumen</div>
-            </div>
-
-            <!-- Digital Gain Vertical Slider -->
-            <div class="cc-slider-wrapper">
-              <div class="cc-vertical-slider" id="gain-vertical-slider">
-                <div class="cc-slider-fill" id="gain-vertical-fill" style="height: 25%;"></div>
-                <div class="cc-slider-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                  </svg>
-                </div>
-                <span class="cc-slider-value" id="gain-vertical-value">+6dB</span>
-              </div>
-              <div class="cc-slider-label">Ganancia</div>
-            </div>
-
-          </div>
-
         </div>
+
 
         <!-- Operations Panel (Fullscreen / Cinema Mode / Sensitivity Slider) -->
         <div class="glass-card system-ops-card">
@@ -3523,6 +3525,8 @@
 
     // Vertical Drag Sliders Logic (iOS-like touch/mouse interaction)
     function setupVerticalSlider(sliderEl, fillEl, valEl, onChange, onStartDrag, onEndDrag) {
+      let initialPercentage = 0;
+
       function updateSliderFromY(y) {
         const rect = sliderEl.getBoundingClientRect();
         let ratio = 1 - ((y - rect.top) / rect.height);
@@ -3541,18 +3545,40 @@
       function onPointerUp() {
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerCancel);
         sliderEl.style.transform = 'scale(1)';
         if (onEndDrag) onEndDrag();
       }
 
+      function onPointerCancel() {
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerCancel);
+        sliderEl.style.transform = 'scale(1)';
+        
+        // Restaurar valor inicial en caso de cancelación del gesto (ej. swipe para cerrar app)
+        fillEl.style.height = `${initialPercentage}%`;
+        if (valEl) valEl.textContent = `${initialPercentage}%`;
+        if (onChange) onChange(initialPercentage);
+        if (onEndDrag) onEndDrag();
+      }
+
       sliderEl.addEventListener('pointerdown', (e) => {
+        // Registrar el valor inicial antes de arrastrar
+        const rect = sliderEl.getBoundingClientRect();
+        let ratio = 1 - ((e.clientY - rect.top) / rect.height);
+        ratio = Math.max(0, Math.min(1, ratio));
+        initialPercentage = Math.round(ratio * 100);
+
         sliderEl.style.transform = 'scale(0.98)';
         if (onStartDrag) onStartDrag();
         updateSliderFromY(e.clientY);
         window.addEventListener('pointermove', onPointerMove);
         window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerCancel);
       });
     }
+
 
     // Set up Volume Slider (Absolute precision)
     let volTimeout = null;

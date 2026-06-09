@@ -48,7 +48,7 @@ class TestPomodoroTimer(unittest.TestCase):
         self.assertEqual(status["time_left"], 25 * 60)
         self.assertTrue(mock_broadcast.called)
 
-    @patch("core.web_server.manager.broadcast")
+    @patch("core.web_server.manager.broadcast", new_callable=MagicMock)
     @patch("core.web_server.uvicorn_loop")
     def test_broadcast_state(self, mock_loop, mock_broadcast):
         # Mock uvicorn loop and running status

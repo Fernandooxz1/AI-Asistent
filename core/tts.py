@@ -15,8 +15,9 @@ _interrupt_event = threading.Event()
 _worker_thread = None
 _thread_lock = threading.Lock()
 
-# Control del proceso actual de espeak para permitir interrupción
+# Control del proceso actual de espeak/piper para permitir interrupción
 _current_process = None
+_current_generator_process = None
 _process_lock = threading.Lock()
 
 # Buscar si espeak-ng o espeak está disponible en el sistema
@@ -26,7 +27,7 @@ if shutil.which("espeak-ng"):
 elif shutil.which("espeak"):
     TTS_ENGINE = "espeak"
 else:
-    logger.warning("No se encontró 'espeak-ng' ni 'espeak' en el sistema. El TTS no reproducirá voz.")
+    logger.warning("No se encontró 'espeak-ng' ni 'espeak' en el sistema. El TTS no reproducirá voz de fallback.")
 
 def load_config() -> dict:
     """Carga config.json del proyecto para obtener parámetros del asistente."""
@@ -44,11 +45,30 @@ def load_config() -> dict:
             logger.warning(f"[TTS] No se pudo leer config.json: {e}")
     return {}
 
-def _speech_worker():
-    """Hilo de segundo plano para procesar la cola de habla de Viernes usando espeak-ng."""
-    global _current_process
+def get_model_path() -> str:
+    """Retorna la ruta absoluta al modelo de voz de Piper si existe."""
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
-    logger.info("[TTS] Hilo de ejecución de voz iniciado (modo ligero/espeak).")
+    # Ruta estándar: core/tts_models/es_MX-claude-high.onnx
+    path = os.path.join(base_path, "core", "tts_models", "es_MX-claude-high.onnx")
+    if os.path.exists(path):
+        return path
+    
+    # Ruta alternativa
+    path_alt = os.path.join(base_path, "tts_models", "es_MX-claude-high.onnx")
+    if os.path.exists(path_alt):
+        return path_alt
+        
+    return ""
+
+def _speech_worker():
+    """Hilo de segundo plano para procesar la cola de habla de Viernes usando Piper o espeak-ng."""
+    global _current_process, _current_generator_process
+    
+    logger.info("[TTS] Hilo de ejecución de voz iniciado (soporta Piper/espeak).")
     
     while True:
         try:
@@ -60,53 +80,116 @@ def _speech_worker():
             # Limpiar el evento de interrupción antes de iniciar la reproducción
             _interrupt_event.clear()
             
-            if not TTS_ENGINE:
-                logger.warning(f"[TTS] No hay motor de voz disponible. Se omitió: '{text}'")
-                _speech_queue.task_done()
-                continue
-                
             if _interrupt_event.is_set():
                 _speech_queue.task_done()
                 continue
                 
-            # Obtener idioma y voz configurada
-            config = load_config()
-            lang_conf = config.get("language", "es-ES")
-            if lang_conf.lower().startswith("en"):
-                voice = "en+f4"  # Voz femenina en inglés
-            else:
-                voice = "es+f4"  # Voz femenina amable en español (robótica pero clara)
+            # Intentar usar Piper
+            model_path = get_model_path()
+            use_piper = False
+            player = None
+            
+            if shutil.which("piper-tts") and model_path:
+                if shutil.which("pw-play"):
+                    player = "pw-play"
+                elif shutil.which("paplay"):
+                    player = "paplay"
+                elif shutil.which("aplay"):
+                    player = "aplay"
                 
-            # Construir comando de espeak-ng
-            # -s 165: velocidad ligeramente menor para mejor claridad
-            # -p 60: tono ligeramente más agudo para emular un asistente femenino
-            # -a 160: aumenta la amplitud de salida digital de espeak (por encima del 100 por defecto, máx 200) para que se escuche fuerte SIN alterar el volumen global de la PC
-            cmd = [TTS_ENGINE, "-v", voice, "-s", "165", "-p", "60", "-a", "160", text]
-            
-            logger.info(f"[TTS] Diciendo en PC: '{text}' con comando: {' '.join(cmd)}")
-            
-            # Lanzar el proceso de habla y esperar a que termine
-            try:
-                with _process_lock:
-                    if _interrupt_event.is_set():
-                        _speech_queue.task_done()
-                        continue
-                    _current_process = subprocess.Popen(
-                        cmd,
+                if player:
+                    use_piper = True
+                    
+            if use_piper:
+                logger.info(f"[TTS] Diciendo en PC (Piper - Mexicana): '{text}'")
+                try:
+                    # Crear el pipeline: piper-tts -> reproductor
+                    p_gen = subprocess.Popen(
+                        ["piper-tts", "-m", model_path, "-f", "-"],
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL
+                    )
+                    
+                    p_play = subprocess.Popen(
+                        [player, "-"],
+                        stdin=p_gen.stdout,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL
                     )
+                    
+                    # Cerrar nuestra copia de la salida de p_gen para que solo p_play la lea
+                    p_gen.stdout.close()
+                    
+                    with _process_lock:
+                        if _interrupt_event.is_set():
+                            p_gen.kill()
+                            p_play.kill()
+                            _speech_queue.task_done()
+                            continue
+                        _current_process = p_play
+                        _current_generator_process = p_gen
+                    
+                    # Escribir el texto para iniciar la generación
+                    p_gen.stdin.write(text.encode("utf-8"))
+                    p_gen.stdin.close()
+                    
+                    # Esperar a que el reproductor termine de reproducir
+                    p_play.wait()
+                    
+                except Exception as e:
+                    logger.error(f"[TTS] Error ejecutando pipeline de Piper: {e}")
+                finally:
+                    # Limpieza del pipeline
+                    try:
+                        p_gen.kill()
+                    except Exception:
+                        pass
+                    try:
+                        p_play.kill()
+                    except Exception:
+                        pass
+                    with _process_lock:
+                        _current_process = None
+                        _current_generator_process = None
+                    _speech_queue.task_done()
+                    
+            else:
+                # Fallback a espeak-ng/espeak
+                if not TTS_ENGINE:
+                    logger.warning(f"[TTS] No hay motor de voz disponible (ni espeak ni piper). Se omitió: '{text}'")
+                    _speech_queue.task_done()
+                    continue
+                    
+                # Obtener idioma y voz configurada
+                config = load_config()
+                lang_conf = config.get("language", "es-ES")
+                if lang_conf.lower().startswith("en"):
+                    voice = "en+f4"  # Voz femenina en inglés
+                else:
+                    voice = "es+f4"  # Voz femenina amable en español (robótica pero clara)
+                    
+                cmd = [TTS_ENGINE, "-v", voice, "-s", "165", "-p", "60", "-a", "160", text]
+                logger.info(f"[TTS] Diciendo en PC (Espeak): '{text}' con comando: {' '.join(cmd)}")
                 
-                # Esperar a que espeak termine de hablar
-                _current_process.wait()
-                
-            except Exception as e:
-                logger.error(f"[TTS] Error en ejecución de espeak: {e}")
-            finally:
-                with _process_lock:
-                    _current_process = None
-                _speech_queue.task_done()
-                
+                try:
+                    with _process_lock:
+                        if _interrupt_event.is_set():
+                            _speech_queue.task_done()
+                            continue
+                        _current_process = subprocess.Popen(
+                            cmd,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL
+                        )
+                    _current_process.wait()
+                except Exception as e:
+                    logger.error(f"[TTS] Error en ejecución de espeak: {e}")
+                finally:
+                    with _process_lock:
+                        _current_process = None
+                    _speech_queue.task_done()
+                    
         except Exception as e:
             logger.error(f"[TTS] Excepción inesperada en bucle de voz: {e}")
             time.sleep(0.1)
@@ -115,7 +198,7 @@ def _speech_worker():
 
 def say(text: str) -> None:
     """
-    Sintetiza una frase de forma asíncrona usando espeak-ng/espeak local.
+    Sintetiza una frase de forma asíncrona usando espeak-ng/espeak o Piper local.
     Si el micrófono activo actual es el móvil, redirige el texto al móvil por WebSocket.
     """
     if not text:
@@ -152,7 +235,7 @@ def say(text: str) -> None:
 
 def stop() -> None:
     """
-    Detiene de manera inmediata cualquier reproducción actual matando el proceso de espeak en curso.
+    Detiene de manera inmediata cualquier reproducción actual matando el proceso de espeak/piper en curso.
     """
     logger.info("[TTS] Cancelación de habla solicitada. Deteniendo proceso y vaciando cola.")
     _interrupt_event.set()
@@ -165,15 +248,26 @@ def stop() -> None:
         except queue.Empty:
             break
             
-    # Matar el proceso de espeak en ejecución actual
-    global _current_process
+    # Matar el proceso en ejecución actual
+    global _current_process, _current_generator_process
     with _process_lock:
         if _current_process is not None:
             try:
                 _current_process.terminate()
                 _current_process.kill()
-                logger.info("[TTS] Proceso de espeak terminado exitosamente.")
+                logger.info("[TTS] Proceso de reproducción terminado exitosamente.")
             except Exception as e:
-                logger.warning(f"[TTS] Error al terminar proceso de espeak: {e}")
+                logger.warning(f"[TTS] Error al terminar proceso de reproducción: {e}")
             finally:
                 _current_process = None
+                
+        if _current_generator_process is not None:
+            try:
+                _current_generator_process.terminate()
+                _current_generator_process.kill()
+                logger.info("[TTS] Proceso de generación (Piper) terminado exitosamente.")
+            except Exception as e:
+                logger.warning(f"[TTS] Error al terminar proceso de generación: {e}")
+            finally:
+                _current_generator_process = None
+

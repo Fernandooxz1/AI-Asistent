@@ -1,4 +1,4 @@
-const CACHE_NAME = 'viernes-pwa-cache-v1';
+const CACHE_NAME = 'viernes-pwa-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',

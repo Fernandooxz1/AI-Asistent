@@ -159,6 +159,7 @@ class AudioListener:
         self.remote_audio_queue = queue.Queue()
         self.current_state = "IDLE"
         self.original_volume = None
+        self.current_energy = 0.0
 
         # Asignación de propiedades desde la configuración
         self.wake_word: str = config["wake_word"].lower()
@@ -285,6 +286,16 @@ class AudioListener:
                 if len(data) == 0:
                     continue
                 
+                # Calcular la energía en tiempo real (para el visualizador de la GUI)
+                if not self.is_paused:
+                    audio_data = np.frombuffer(data, dtype=np.int16).astype(np.float32)
+                    if len(audio_data) > 0:
+                        self.current_energy = np.sqrt(np.mean(np.square(audio_data)))
+                    else:
+                        self.current_energy = 0.0
+                else:
+                    self.current_energy = 0.0
+                
                 # Aplicar puerta de ruido al micrófono de la PC
                 if not self.is_paused:
                     data = self._apply_noise_gate(data)
@@ -346,6 +357,7 @@ class AudioListener:
             logger.error(f"Error inesperado durante la escucha activa de la wake word: {e}")
             return False
         finally:
+            self.current_energy = 0.0
             try:
                 stream.stop_stream()
                 stream.close()
@@ -417,6 +429,9 @@ class AudioListener:
                     energy = np.sqrt(np.mean(np.square(audio_data)))
                 else:
                     energy = 0.0
+                
+                # Guardar energía actual para la GUI
+                self.current_energy = energy
 
 
                 # Detectar si el usuario empezó a hablar
@@ -465,6 +480,7 @@ class AudioListener:
             logger.error(f"Error inesperado al grabar comando: {e}")
             return None
         finally:
+            self.current_energy = 0.0
             if hasattr(self, "original_volume") and self.original_volume is not None:
                 try:
                     set_pc_volume(self.original_volume)

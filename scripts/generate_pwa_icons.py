@@ -1,50 +1,60 @@
 #!/usr/bin/env python3
 import os
-from PIL import Image, ImageDraw
+from PIL import Image
 
-def create_pwa_icon(size, filename):
-    # Create an RGBA image
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    base = Image.new("RGBA", (size, size))
-    base_draw = ImageDraw.Draw(base)
+def create_pwa_icon_from_logo(logo_path, size, filename):
+    # Load the logo image
+    logo = Image.open(logo_path)
     
-    # Premium gradient from deep blue (#0A84FF) to warm purple (#BF5AF2)
-    # Start color: RGB(10, 132, 255) -> End color: RGB(191, 90, 242)
-    for y in range(size):
-        r = int(10 + (191 - 10) * (y / size))
-        g = int(132 + (90 - 132) * (y / size))
-        b = int(255 + (242 - 255) * (y / size))
-        base_draw.line([(0, y), (size, y)], fill=(r, g, b, 255))
-        
-    # Mask to make a beautiful rounded rectangle (standard PWA/iOS style icon)
-    mask = Image.new("L", (size, size), 0)
-    mask_draw = ImageDraw.Draw(mask)
-    corner_radius = int(size * 0.22)
-    mask_draw.rounded_rectangle([(0, 0), (size - 1, size - 1)], radius=corner_radius, fill=255)
+    # Pad to square (with transparent background)
+    max_dim = max(logo.width, logo.height)
+    square_img = Image.new("RGBA", (max_dim, max_dim), (0, 0, 0, 0))
+    # Paste centered
+    x_offset = (max_dim - logo.width) // 2
+    y_offset = (max_dim - logo.height) // 2
+    square_img.paste(logo, (x_offset, y_offset))
     
-    # Composite the gradient base with the mask
-    icon_bg = Image.composite(base, Image.new("RGBA", (size, size), (0, 0, 0, 0)), mask)
-    
-    # Draw a stylized modern "V" in the center with a subtle white glow/fill
-    draw_v = ImageDraw.Draw(icon_bg)
-    v_points = [
-        (int(0.28 * size), int(0.28 * size)), # Top-Left outer
-        (int(0.38 * size), int(0.28 * size)), # Top-Left inner
-        (int(0.50 * size), int(0.58 * size)), # Center bottom inner
-        (int(0.62 * size), int(0.28 * size)), # Top-Right inner
-        (int(0.72 * size), int(0.28 * size)), # Top-Right outer
-        (int(0.50 * size), int(0.72 * size))  # Center bottom outer
-    ]
-    draw_v.polygon(v_points, fill=(255, 255, 255, 255))
+    # Resize to the required size using Lanczos resampling
+    resized = square_img.resize((size, size), Image.Resampling.LANCZOS)
     
     # Save the output file
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    icon_bg.save(filename, "PNG")
+    resized.save(filename, "PNG")
     print(f"Generated icon: {filename} ({size}x{size})")
+
+def create_favicon(logo_path, filename):
+    logo = Image.open(logo_path)
+    max_dim = max(logo.width, logo.height)
+    square_img = Image.new("RGBA", (max_dim, max_dim), (0, 0, 0, 0))
+    x_offset = (max_dim - logo.width) // 2
+    y_offset = (max_dim - logo.height) // 2
+    square_img.paste(logo, (x_offset, y_offset))
+    
+    # Save as ICO with multiple standard sizes
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    square_img.save(filename, format="ICO", sizes=[(16, 16), (32, 32), (48, 48), (64, 64)])
+    print(f"Generated favicon: {filename}")
 
 if __name__ == "__main__":
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    static_dir = os.path.join(project_root, "static")
+    logo_path = os.path.join(project_root, "viernes-logo.png")
     
-    create_pwa_icon(192, os.path.join(static_dir, "icon-192.png"))
-    create_pwa_icon(512, os.path.join(static_dir, "icon-512.png"))
+    if not os.path.exists(logo_path):
+        print(f"Error: {logo_path} does not exist!")
+        exit(1)
+        
+    # Standard static directories to update
+    static_dirs = [
+        os.path.join(project_root, "static"),
+    ]
+    
+    # Also update dist folder directly so it works on running app without full rebuild
+    dist_static = os.path.join(project_root, "dist", "viernes", "_internal", "static")
+    if os.path.exists(dist_static):
+        static_dirs.append(dist_static)
+        
+    for static_dir in static_dirs:
+        print(f"Updating icons in: {static_dir}")
+        create_pwa_icon_from_logo(logo_path, 192, os.path.join(static_dir, "icon-192.png"))
+        create_pwa_icon_from_logo(logo_path, 512, os.path.join(static_dir, "icon-512.png"))
+        create_favicon(logo_path, os.path.join(static_dir, "favicon.ico"))

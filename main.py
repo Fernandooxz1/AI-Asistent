@@ -141,6 +141,63 @@ class ViernesAssistant:
         except (socket.error, ConnectionRefusedError):
             return False
 
+    def _ensure_ollama_and_model(self) -> None:
+        """
+        Verifica que el servicio de Ollama esté corriendo y que el modelo
+        configurado esté disponible. Si el modelo no existe, intenta descargarlo.
+        """
+        model_name = self.config.get("model_name", "qwen2.5:3b")
+        logger.info(f"Verificando disponibilidad de Ollama y el modelo '{model_name}'...")
+
+        # 1. Esperar a que Ollama responda
+        ollama_ready = False
+        for i in range(10):  # Esperar hasta 5 segundos en total
+            if self._check_ollama_running():
+                ollama_ready = True
+                break
+            time.sleep(0.5)
+
+        if not ollama_ready:
+            logger.error("El servidor de Ollama no responde en el puerto 11434.")
+            return
+
+        # 2. Verificar si el modelo ya está instalado localmente
+        try:
+            res = subprocess.run(
+                ["ollama", "show", model_name],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            if res.returncode == 0:
+                logger.info(f"Modelo '{model_name}' verificado y disponible localmente.")
+                return
+        except Exception as e:
+            logger.warning(f"Error al verificar el modelo usando 'ollama show': {e}")
+
+        # 3. Descargar el modelo
+        logger.info(f"El modelo '{model_name}' no se encuentra disponible. Iniciando descarga (pull)...")
+        self.notify_state("DESCARGANDO_MODELO")
+        
+        # Intentar decir por voz que se va a descargar el modelo
+        try:
+            from core import tts
+            tts.say("Por favor espera, estoy descargando el modelo de lenguaje de Ollama. Esto puede tomar unos minutos.")
+        except Exception:
+            pass
+
+        try:
+            # Ejecutar 'ollama pull <model_name>'
+            subprocess.run(["ollama", "pull", model_name], check=True)
+            logger.info(f"Modelo '{model_name}' descargado e instalado con éxito.")
+            try:
+                tts.say("Modelo descargado correctamente. Listo para recibir comandos.")
+            except Exception:
+                pass
+        except Exception as e:
+            logger.error(f"Error al intentar descargar el modelo '{model_name}': {e}")
+        finally:
+            self.notify_state("ESCUCHANDO_WAKE")
+
     def notify_state(self, state: str) -> None:
         """Notifica el cambio de estado a todos los callbacks registrados."""
         if hasattr(self, "listener"):
@@ -249,6 +306,9 @@ class ViernesAssistant:
                         termina ordenadamente al final del ciclo actual. Si es None,
                         el asistente corre hasta Ctrl+C (modo consola).
         """
+        # Asegurar que Ollama y el modelo estén listos antes de entrar al bucle de escucha
+        self._ensure_ollama_and_model()
+
         try:
             while True:
                 # Chequear señal de parada (para integración con GUI)
